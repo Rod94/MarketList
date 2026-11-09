@@ -308,7 +308,7 @@ Detalhamento de telas e componentes está em `DESIGN.md`; **validar a usabilidad
 dart format .
 flutter analyze
 flutter test
-flutter test integration_test
+flutter test integration_test --no-uninstall
 flutter build apk
 ```
 
@@ -378,3 +378,27 @@ Plataformas Android/Kotlin e iOS/Swift foram geradas pelo Flutter 3.47.9. O cód
 `lib/features/shopping/domain/models/shopping_list.dart` contém `ShoppingList` e `ShoppingListStatus` em Dart puro. O construtor recebe identidade e criação, normaliza datas para UTC e valida coerência dos campos da seção 5. A instância é imutável e representa os estados ativo/finalizado sem realizar transição, persistência ou cálculo.
 
 O fluxo atual do modelo é entrada explícita de dados → normalização/validação no construtor → objeto válido ou `ArgumentError`. UI, ViewModel e repositório ainda não usam o modelo. Não foram criados contratos de banco, mapeadores, geradores de ID ou telas antecipadamente. As fronteiras/invariantes estão registradas em `DECISIONS.md`, seção 7; execução e didática em `PHASE_1_REPORT.md`.
+
+## 16. Banco efetivamente criado — F1-02, 09/11/2026
+
+`core/database/app_database.dart` concentra abertura, caminho, versão, factory e configuração de foreign_keys. `core/database/migrations/v1.dart` cria somente `shopping_lists` com os campos do modelo, restrições e índice por estado/data. O esquema conceitual da seção 6 permanece como alvo futuro; `shopping_items` e `purchase_entries` ainda não existem na migração de produção.
+
+Fluxo desta camada: chamador → `AppDatabase.open()` → sqflite configura a conexão → cria v1 atomicamente se necessário ou reabre a versão suportada → devolve a conexão. Falhas são propagadas; não há recuperação que apague arquivos. Reabertura da v1 e recusa da v2 de fixture foram testadas; evolução v1→v2 ainda precisa de migração/testes próprios.
+
+Não há conexão nova no `main.dart`, Provider ou widget. O banco é usado apenas pelos testes até F1-03/F1-04 integrarem as camadas. `test/database/app_database_test.dart` executa SQLite FFI em Windows; `integration_test/database_smoke_test.dart` usa o plugin nativo no Android. As tabelas-filhas usadas nos testes de foreign_keys são fixtures, não modelos de produtos antecipados. Limites das validações e proteção futura de listas finalizadas: `DECISIONS.md`, seção 8.
+
+## 17. Repositório efetivamente criado — F1-03, 09/11/2026
+
+`features/shopping/domain/shopping_repository.dart` define o contrato puro e erros específicos para lista finalizada/conflito de criação. `features/shopping/data/sqlite_shopping_repository.dart` implementa ID, criação, leitura de ativas e remoção. O mapeamento linha↔modelo fica privado na própria implementação, sem abstração genérica de mapper ou repositório-base.
+
+Fluxo atual: chamador (testes) → repositório → modelo para validar → AppDatabase → transação SQLite → resultado confirmado. Leituras materializam modelos imutáveis e ordenam por instante real; criação/remoção usam somente consultas parametrizadas e o executor da transação. Erros são propagados. `main.dart` e a tela ainda não usam a camada de listas; essa ligação será feita na F1-04.
+
+Repositório recebeu 26 testes FFI e três cenários adicionais no teste nativo de banco. A migração v1 não mudou. CT-001/002/003 estão cobertos nesta camada; experiência de confirmação, reinício completo e preservação visual de inputs continuam dependentes de F1-04/F1-05. Não há edição/finalização de compras nem consulta histórica implementada. Regras de identidade, retry e precisão temporal: `DECISIONS.md`, seção 9.
+
+## 18. Interface e reinício offline — F1-04/F1-05, 09/11/2026
+
+`app/app.dart` compõe repositório SQLite, ThemeViewModel e ShoppingListsViewModel. `ShoppingListsScreen` apresenta as listas e encaminha ações; `CreateListSheet` mantém controladores de texto e layout do teclado. `list_budget_input.dart` converte/exibe somente orçamento de lista, em centavos inteiros. O parser geral de moeda/preços permanece para F3. Tela de aparência existente é acessada pelo AppBar.
+
+Fluxo de criação: campo → rascunho no ViewModel → validação/centavos → repositório com ID estável → transação SQLite → modelo confirmado → coleção imutável → atualização da tela e fechamento do painel. Erro mantém painel, textos e identidade. Exclusão: diálogo com nome → ViewModel → remoção transacional ativa → atualização visual somente após confirmação. Model/repositório compartilham o comparador temporal já adotado.
+
+O app normal agora usa `market_list.db`. Por isso, a integração injeta outro repositório em banco temporário próprio, sem fallback em produção. A F1-05 foi verificada no app normal pelo host, com modo avião, Wi-Fi desligado, nenhuma rede padrão, novo processo e recuperação real dos dados. O roteiro ADB remove apenas sua lista e restaura as configurações capturadas. Ele não é parte do runtime Flutter. A migração v1 não mudou; futuras tabelas ainda requerem migração/testes próprios.

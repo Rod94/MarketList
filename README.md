@@ -2,11 +2,13 @@
 
 Repositório: [Rod94/MarketList](https://github.com/Rod94/MarketList). Branch principal: `main`.
 
-Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e base nativa iOS preparada. A **Fase 0** entregou uma tela de demonstração dos temas. A tarefa **F1-01** acrescentou o modelo de lista em Dart puro e 21 testes de domínio. A interface ainda demonstra temas; cadastro, persistência SQLite, produtos, cálculos e histórico serão implementados nas tarefas seguintes.
+Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e base nativa iOS preparada. **Fases 0 e 1 concluídas:** temas Claro/AMOLED, tela Minhas listas, criação com nome/orçamento opcional, exclusão confirmada e persistência SQLite, inclusive após reiniciar sem rede. Produtos, preços, compra, finalização e histórico pertencem às próximas fases.
 
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.
+- SQLite: `sqflite` **2.4.5+1**, `path` **1.9.1**; testes de computador com `sqflite_common_ffi` **2.4.6** (dependência de desenvolvimento).
+- Identificadores: `uuid` **4.6.0**; cada inclusão deve manter o mesmo ID durante suas tentativas.
 - Nome exibido: **MarketList**; pacote Dart: `market_list`.
 - Identificador Android e bundle iOS: `br.com.rodolpho.marketlist` (identidade de desenvolvimento, sem publicação).
 - SDK Flutter instalado em `C:\Users\Rodolpho\develop\flutter`, sem modificar o PATH global.
@@ -34,15 +36,32 @@ Ajuste os caminhos se necessário. Com um dispositivo Android conectado ou emula
 
 ```powershell
 flutter run -d ID_ANDROID
-flutter test integration_test -d ID_ANDROID
+flutter test integration_test --no-uninstall -d ID_ANDROID
 flutter build apk --debug
 ```
 
-O APK de desenvolvimento foi gerado em `build/app/outputs/flutter-apk/app-debug.apk`, com uma cópia identificada em `build/app/outputs/flutter-apk/marketlist-0.1.0-debug.apk`. Essa variante usa assinatura de debug e não é uma entrega de release. Builds podem baixar Gradle e componentes do Android SDK. Licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
+O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-phase-1-debug.apk` na mesma pasta. Artefatos identificados anteriores foram preservados. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
+
+Use `--no-uninstall` na integração: o Flutter 3.47.9 desinstala o pacote por padrão ao encerrar o teste. A opção preserva a instalação e seus dados; ao terminar, gere/instale o APK normal para substituir a variante de teste. Os testes de banco/repositório usam exclusivamente arquivos temporários próprios.
 
 Validação da Fase 0: 7 testes convencionais e 1 teste de integração aprovados, APK normal instalado/aberto no Samsung SM-S936B, Android 17; tela confirmada pelo usuário. O diagnóstico daquela entrega ainda aponta cmdline-tools ausente.
 
-Validação mais recente, F1-01: `flutter analyze` sem problemas e `flutter test` com **28 aprovados** (21 novos + 7 anteriores). Não foi gerado novo APK nem repetida integração, pois o modelo ainda não está ligado à interface. Veja [o relatório incremental da Fase 1](docs/PHASE_1_REPORT.md).
+Validação final da Fase 1: `flutter analyze` sem problemas, `flutter test` com **105 aprovados**, **9 testes nativos aprovados** no Samsung e **1 roteiro offline/reinício aprovado** no app normal. Houve interrupções do runner antes da execução bem-sucedida; causa não comprovada. As expectativas não foram relaxadas. Detalhes e comandos reais no [relatório da Fase 1](docs/PHASE_1_REPORT.md).
+
+## Usar no Android
+
+Em Minhas listas, toque em **Nova lista**, informe nome e orçamento opcional (ex.: `250,00`, sem pontos), e confirme **Criar lista**. A lista aparece somente após salvar. Em caso de erro, os campos ficam preenchidos para nova tentativa. Cancelar descarta apenas o rascunho. O ícone de excluir abre confirmação com nome; Aparência permite Claro/AMOLED/Sistema. A preferência de tema ainda não é gravada.
+
+## Verificação de reinício offline
+
+O roteiro `tool/verify_android_offline.py` exige Python/ADB, celular desbloqueado e app normal instalado/aberto. `--inspect` só inspeciona; `--run` altera temporariamente rede/tela, cria e remove uma lista própria. Leia o roteiro antes de executar; a conexão do aparelho fica interrompida durante o teste. Configurações capturadas são restauradas em finally. Exemplo com caminhos ajustados ao seu ambiente:
+
+```powershell
+python tool/verify_android_offline.py --adb CAMINHO_ADB --serial ID_ANDROID --inspect
+python tool/verify_android_offline.py --adb CAMINHO_ADB --serial ID_ANDROID --run
+```
+
+Resultado/capturas ficam em `build/offline_verification/`, fora do Git. O roteiro nunca limpa o banco nem desinstala o aplicativo.
 
 ## Estrutura atual
 
@@ -52,15 +71,30 @@ lib/
   app/
     app.dart
     theme/                      # Tokens, ThemeData e estado da demonstração
-  core/preferences/             # Preferência de tema compartilhada
+  core/
+    preferences/                # Preferência de tema compartilhada
+    database/
+      app_database.dart         # Abertura/versão e configuração da conexão
+      migrations/v1.dart        # Somente tabela de listas e índice
   features/shopping/presentation/screens/
-    scaffold_screen.dart        # Apenas demonstração; ainda sem listas
+    shopping_lists_screen.dart  # Tela inicial e confirmação de exclusão
+    scaffold_screen.dart        # Aparência, via AppBar
+  features/shopping/presentation/view_models/
+    shopping_lists_view_model.dart # Carga, rascunho, erros e operações
+  features/shopping/presentation/widgets/
+    create_list_sheet.dart      # Formulário e ações acima do teclado
   features/shopping/domain/models/
     shopping_list.dart          # Modelo imutável, com validação e datas UTC
+  features/shopping/domain/
+    shopping_repository.dart    # Contrato Dart puro e erros de operação
+  features/shopping/data/
+    sqlite_shopping_repository.dart # Persistência, transações e mapeamento
 test/
   unit/                         # Estado e notificações do ViewModel
   widget/                       # Inicialização, temas e fonte ampliada
-integration_test/               # Smoke test para dispositivo
+  database/                     # SQLite real em arquivos temporários
+integration_test/               # Aparência e SQLite nativo no dispositivo
+tool/verify_android_offline.py   # Roteiro host de reinício real sem conexão
 android/                        # Projeto Kotlin/Gradle gerado pelo Flutter
 ios/                            # Projeto Swift/Xcode; não testado no Windows
 docs/                           # Requisitos, decisões, tarefas e evidências
@@ -70,7 +104,7 @@ Não há diretórios vazios antecipando banco, dinheiro, checkout ou histórico.
 
 ## Documentação e escopo
 
-Leia `AGENTS.md` e, em `docs/`, `SPEC.md`, `DESIGN.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TESTING.md` e `TASKS.md` antes de implementar. Regras de negócio permanecem as documentadas. A Fase 1 foi autorizada; F1-01 está feita e as próximas tarefas devem continuar em entregas pequenas.
+Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. A Fase 1 está concluída. Próxima tarefa sugerida: F2-01, após autorização para iniciar a Fase 2. Regras aprovadas permanecem preservadas.
 
 `AGENTS.md` contém instruções locais, está no `.gitignore` por escolha do usuário e não é enviado ao GitHub. A documentação em `docs/` é versionada.
 

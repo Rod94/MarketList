@@ -1,6 +1,7 @@
 # TESTING.md — Estratégia e casos de teste do aplicativo de supermercado
 
-**Versão:** 0.3 — catálogo de produto planejado; Fase 0 e domínio F1-01 testados  
+**Versão:** 0.6 — Fases 0/1 testadas; demais funcionalidades planejadas
+
 **Data:** 09/11/2026 (catálogo original: 07/11/2026)  
 **Referências:** `SPEC.md`, `DESIGN.md`, `ARCHITECTURE.md`, `TASKS.md`
 
@@ -202,7 +203,7 @@ Não converter suposições em regras aprovadas. Antes de implementar a validaç
 dart format .
 flutter analyze
 flutter test
-flutter test integration_test
+flutter test integration_test --no-uninstall
 flutter build apk
 ```
 
@@ -263,3 +264,103 @@ Relatório com ambiente, APK, comandos e aprendizado: `PHASE_0_REPORT.md`.
 **Limitações:** CT-001 completo (criação na interface e persistência), CT-003, CT-046 e fluxos FIN continuam pendentes. Campos finais são representação de dados, não operação de finalização. Repositório ainda não existe para recusar gravações em listas finalizadas. Não foram repetidos integração Android, build APK nem smoke manual: o modelo ainda não é usado pela interface e nenhuma tela/plataforma/dependência foi alterada. Os resultados Android da seção 12 são evidência histórica da Fase 0. Sem novo APK nesta entrega.
 
 Detalhes, decisões técnicas e exercício: `PHASE_1_REPORT.md`.
+
+## 14. Execução F1-02 — 09/11/2026
+
+| Requisito/caso | Evidência | Resultado final |
+| --- | --- | --- |
+| F1-02: abertura/versão/esquema mínimo, índice e aberturas concorrentes | `test/database/app_database_test.dart` | Incluídos nos **15 testes de banco aprovados** |
+| F1-02: integridade referencial | FK habilitada; tabela-filha de fixture recusa referência órfã e remoção do pai referenciado | SQLite real, sem mock |
+| F1-02: restrições | Identificação/nome/estado, sufixo UTC, tipo dos centavos, zero/null e coerência de dados finais | Restrições testadas sem implementar repositório/UI |
+| F1-02 / CT-049 parcial | Reabrir preserva campos; tentativa de versão 2→1 recusa sem apagar dados | A fixture v2 não é migração de produto v1→v2 |
+| F1-02: atomicidade da migração | Erro na criação do índice reverte a tabela criada e mantém versão 0/dados antigos; tentativa após remover conflito passa | Não equivale a CT-048 de finalização, que permanece pendente |
+| F1-02: validação Android nativa | `integration_test/database_smoke_test.dart`: abertura/FK/reabertura, rollback da migração e downgrade | **3 aprovados** no Samsung SM-S936B |
+| Regressão da aparência | `integration_test/app_smoke_test.dart` | **1 aprovado** no mesmo aparelho |
+
+**Comandos efetivamente executados:**
+
+- `flutter pub add sqflite path` e `flutter pub add --dev sqflite_common_ffi`: sucesso; versões no lockfile.
+- `flutter test test/database/app_database_test.dart` RED: saída 1 por AppDatabase ausente; não houve asserções executadas nessa etapa. GREEN: **15 aprovados**.
+- `dart format lib/core/database test/database` e `dart format .`: executados. Ajuste final do nome de um teste exigiu formatar novamente `test/database/app_database_test.dart`.
+- Primeira análise: 1 informação de lint `prefer_initializing_formals`. Construtor ajustado; `flutter analyze` seguinte: **No issues found!**.
+- `flutter test`: duas execuções, **43 aprovados/0 falhas** em ambas (15 banco + 28 anteriores).
+- Primeira execução `flutter test integration_test -d RXCY300NZZH`: os três testes de banco passaram, mas aparência/tearDownAll ficaram `did not complete`; saída 1. Não foi reproduzida uma causa comprovada para a interrupção.
+- Nova execução `flutter test integration_test --concurrency=1 -d RXCY300NZZH`: **4 aprovados/0 falhas**, saída 0. Flutter informou que ignora a opção; o código da ferramenta 3.47.9 já define concorrência 1 para integração. Portanto, não se atribui a aprovação à opção nem se declara corrigido um defeito de paralelismo.
+- `flutter build apk --debug`: sucesso; APK normal reconstruído após integração, instalado e aberto com `adb install -r`/`am start -W` (**Success / Status: ok**).
+- A tentativa final de formatação no sandbox ficou sem resposta e foi interrompida. Reexecução fora dele detectou um arquivo a ajustar; após aplicar o formatter, `dart format --output=none --set-exit-if-changed .`: **saída 0, 17 arquivos sem alterações**.
+
+Os logs de colisão de índice e downgrade são erros provocados e capturados pelos testes, não falhas da execução GREEN. **Limitações:** não há jornada de listas, reinício do processo/offline E2E, mapper/repositório, proteção completa de listas finalizadas, migração v1→v2 de produto, build iOS ou release. CT-001/003/046/048 e demais fluxos futuros não foram marcados como completos. Dados normais do app não foram usados; fixtures foram removidas após fechar conexões e validar o destino de limpeza.
+
+## 15. Execução F1-03 — 09/11/2026
+
+| Casos/requisitos | Cobertura nesta entrega | Evidência |
+| --- | --- | --- |
+| CT-001 / F1-03 | Criação ativa persistida, nome validado, UTC, identidade/orçamento; nomes iguais permitidos | `test/database/shopping_repository_test.dart` |
+| CT-002 / F1-03 | Remoção somente da ativa indicada, repetição sem falso sucesso, falha por FK preserva pai/filho | Mesmo arquivo |
+| CT-003 parcial | Fechar/reabrir arquivo e nova instância recuperam dados | Não é reinício do processo nem jornada em modo avião |
+| CT-046 parcial / D-021 | Criar com ID finalizado e remover finalizada recusam; histórico permanece idêntico | Operações futuras de edição/preços ainda não existem |
+| F1-03 / AGENTS concorrência | Mesmo ID/dados repete sem duplicar; conflito não sobrescreve; criações/remoções simultâneas; finalização de fixture já iniciada impede remoção | Transações SQLite reais |
+| F1-03 / integridade temporal | Formatos UTC legados, microssegundos, ordem temporal; calendário inválido/precisão excessiva falham sem correção automática | Leitura pelo repositório; migração v1 intacta |
+| F1-03 Android | Persistência/reabertura/remoção, idempotência, proteção de finalizadas e falhas de gravação | 3 novos cenários em `integration_test/database_smoke_test.dart` |
+
+**Resultados/comandos reais:**
+
+- `flutter pub add uuid`: sucesso, uuid 4.6.0 e fixnum 1.1.1 transitivo.
+- RED `flutter test test/database/shopping_repository_test.dart`: saída 1 por contrato/implementação ausentes (sem asserções executadas). GREEN inicial: **24 aprovados**.
+- `dart format lib/features/shopping test/database/shopping_repository_test.dart` e `dart format .`: executados; 20 arquivos Dart ao final.
+- `flutter analyze`: duas execuções nesta tarefa, ambas **No issues found!**.
+- `flutter test`: **67 aprovados** inicialmente; após dois casos adicionais de formato temporal, **69 aprovados/0 falhas** (26 repositório + 43 anteriores).
+- Primeiro `flutter test integration_test/app_smoke_test.dart -d RXCY300NZZH`: saída 79, teste/tearDownAll `did not complete`; a sequência parou antes de executar o segundo comando. Aparelho estava conectado/desbloqueado na checagem posterior; causa não comprovada.
+- `flutter test integration_test/database_smoke_test.dart -d RXCY300NZZH`: **6 aprovados/0 falhas** (3 banco existentes + 3 repositório novos).
+- `flutter test integration_test/app_smoke_test.dart -d RXCY300NZZH --verbose`, registrado em `build/f1-03-app-integration.log`: **1 aprovado**, saída 0. Nenhuma expectativa foi relaxada.
+- O log revelou uninstall automático ao encerrar integração. Leitura do SDK confirmou opção `uninstall` padrão true. Após adotar `--no-uninstall`, `flutter test integration_test/database_smoke_test.dart --no-uninstall -d RXCY300NZZH`: **6 aprovados**, com pacote ainda instalado confirmado por `adb ... shell pm path br.com.rodolpho.marketlist`.
+- Resultado nativo de casos distintos: **7 aprovados** (6 persistência + aparência), incluindo regressão. A interrupção intermitente de aparência continua documentada, sem declaração de causa corrigida.
+- `flutter build apk --debug`: sucesso; app normal restaurado com `adb install -r` e `am start -W` (**Success / Status: ok**).
+- Verificação final `dart format --output=none --set-exit-if-changed .`: **saída 0, 20 arquivos sem alterações**. `git diff --check -- lib test integration_test pubspec.yaml pubspec.lock`: sem erros nos diffs rastreados; fontes novas também passaram pelo formatter/analyzer.
+
+**Correção de orientação anterior:** `install -r` foi usado na restauração manual, mas isso não exclui a desinstalação automática realizada pelo runner nas execuções antigas. A interface ainda não gravava listas/banco normal. Doravante usar `--no-uninstall`, conforme comandos atualizados, e continuar isolando fixtures.
+
+**Limites:** CT-001/002 estão concluídos na camada de repositório, sem formulário/diálogo de confirmação; CT-003/046 têm cobertura parcial explicitada acima. UI, preservação visual de inputs/toque duplo, reinício real/offline E2E, novas tabelas, finalização de produção, iOS e release permanecem nas tarefas futuras. Não há nova migração nem modificação de registros existentes para converter datas.
+
+## 16. Execução F1-04 — interface de listas, 09/11/2026
+
+| Caso/requisito | Evidência nova | Resultado |
+| --- | --- | --- |
+| CT-001 / F1-04 | Nome/orçamento, retorno à lista, estado/datas e dados confirmados | Widget e Android SQLite real |
+| CT-002 / DESIGN seção 6 | Diálogo com nome/impacto, cancelamento sem remover, item só sai após persistir | Widget e Android |
+| UX-007/008 aplicados ao formulário de lista | Salvar bloqueia segunda chamada/cancelar/voltar; erro mantém inputs/ID; retry sem duplicação | ViewModel e widget; falha SQL real no Android |
+| UX-005/018 parcial | Rodapé acima do teclado, campos roláveis, tela 320×568 e texto 2× | Widget; coordenadas e captura real no Android |
+| F1-04: estados/lifecycle | Carga, retry, cache preservado, ausência distinta de falha, dispose durante Future | Testes ViewModel/widget |
+| F1-04: orçamento opcional | Vazio/null, zero, centavos, sintaxe inválida e limite de representação inteira sem overflow | 10 testes puros de orçamento |
+
+**Arquivos:** `test/unit/list_budget_input_test.dart` (**10**), `test/unit/shopping_lists_view_model_test.dart` (**13**) e `test/widget/shopping_lists_screen_test.dart` (**13**). `test/support/fake_shopping_repository.dart` é usado só pelos testes. Os quatro testes de tema existentes passaram a navegar pela nova home com repositório injetado. Integração de UI agora usa banco isolado em `market_list_ui_test_*`.
+
+**Execução real:**
+
+- RED dos dois arquivos unitários: falha de compilação por implementação ausente; GREEN: **23 aprovados**.
+- RED do novo teste de widget: parâmetro de injeção ainda ausente. Primeiro GREEN parcial: 10 aprovados/1 falha por `pageBack()` procurar tooltip inglês. Ajustado seletor para `Voltar`, sem mudar expectativas; depois **15 widgets aprovados** (11 novos + 4 existentes).
+- Dois testes adicionais confirmaram que toques no mesmo ponto são interceptados pela barreira do modal e não empilham painéis/diálogos. A tentativa inicial com finder já oculto gerou aviso; coordenadas derivadas do próprio controle corrigiram o gesto de teste, sem mudança na UI.
+- Uma execução de `dart format .` parou com saída 65 por import colocado após declarações no teste Android; import corrigido antes da análise. Execuções seguintes formataram normalmente.
+- `flutter analyze`: duas execuções aprovadas, **No issues found!**.
+- `flutter test`: **103 aprovados** inicialmente; após os dois testes de gesto adicionais, **105 aprovados/0 falhas**. Composição final: 69 anteriores + 23 unitários + 13 widgets novos.
+- Primeira integração de UI com `--no-uninstall`: saída 79, testes incompletos e erro de limpeza de diretório temporário do runner; segundo comando não iniciou. Diagnóstico `--no-dds --verbose`: saída 1, `streamListen` inválido para stream golden do SDK; opção descartada.
+- `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose`, log em `build/f1-04-ui-dds.log`: **3 aprovados** com DDS normal (tema, criar/excluir e falha real com inputs mantidos/retry).
+- `flutter test integration_test/database_smoke_test.dart --no-uninstall -d RXCY300NZZH`: **6 aprovados**. Total nativo de casos distintos: **9 aprovados**. Interrupção inicial continua sem causa comprovada; não foi tratada como correção de produto.
+- `flutter build apk --debug`: sucesso, 13,5 s; APK normal instalado com `adb install -r` e aberto com `am start -W` (**Success / Status: ok**).
+
+## 17. Execução F1-05 — processo real offline, 09/11/2026
+
+**Roteiro:** `tool/verify_android_offline.py`, Python padrão + ADB, no app normal instalado, sem Flutter test runner. CT-003 e recuperação offline foram verificados para os campos existentes da fase de listas, não para produtos/preços futuros.
+
+1. `python -m py_compile tool/verify_android_offline.py`: sucesso.
+2. Primeira inspeção não encontrou o app visível; estado confirmou aparelho dozing/bloqueado. Nenhuma rede/lista alterada. Usuário desbloqueou e abriu o app; nova `--inspect` identificou controles e capturou a home.
+3. Execução aprovada pelo usuário: `python tool/verify_android_offline.py --adb C:\Users\Rodolpho\AppData\Local\Android\Sdk\platform-tools\adb.exe --serial RXCY300NZZH --run`: **saída 0**.
+4. Modo avião ativo, Wi-Fi desligado e **Active default network: none** confirmados antes de criar uma lista própria com orçamento R$ 123,45.
+5. `am force-stop` encerrou o processo; novo lançamento mudou PID **11518→15073**. Nome/orçamento recuperados na interface e captura revisada.
+6. Somente a própria lista foi removida pelo diálogo de confirmação. `cleanup_ok=true`; modo avião voltou **0**, Wi-Fi **1** e stay-on **0**, iguais aos originais. Checagem posterior confirmou rede padrão reconectada.
+
+Evidência local em `build/offline_verification/result.json`, `form_keyboard.png` e `after_restart_offline.png`, ignorados pelo Git. Capturas inspecionadas: ações acima do teclado físico/IME e dados preservados em AMOLED após novo processo. **Resultado: 1 roteiro E2E aprovado**, além dos 105/9 testes Flutter.
+
+**Saída da Fase 1:** modelo/banco/repositório/UI/reinício aprovados; erros não produzem sucesso nem apagam inputs, exclusão exige confirmação e app funciona offline no escopo implementado. Não há novo esquema nem limpeza de banco para reparar migração. Limites reais: runner intermitente, preferências de tema não persistidas, sem auditoria completa TalkBack/OLED ou build iOS/release. Produtos, preços, finalização e histórico ainda não implementados.
+
+Verificação final: `dart format --output=none --set-exit-if-changed .` retornou **0, 28 arquivos sem alterações**; `python -m py_compile tool/verify_android_offline.py` retornou 0. O fetch confirmou que origin/main e HEAD estavam alinhados antes do novo commit. Capturas, JSON, APK e AGENTS.md permaneceram ignorados.

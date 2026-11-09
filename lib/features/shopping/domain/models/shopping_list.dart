@@ -65,6 +65,11 @@ final class ShoppingList {
   final int? finalizedRegisteredTotalCents;
   final int? checkoutPaidCents;
 
+  static int compareByNewestCreation(ShoppingList first, ShoppingList second) {
+    final byDate = second.createdAt.compareTo(first.createdAt);
+    return byDate != 0 ? byDate : first.id.compareTo(second.id);
+  }
+
   static void _validateCents(int? value, String field) {
     if (value != null && value < 0) {
       throw ArgumentError.value(value, field, 'O valor não pode ser negativo.');

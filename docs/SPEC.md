@@ -192,4 +192,4 @@ As regras de apresentação e de persistência estão detalhadas em `DESIGN.md` 
 - `TASKS.md`: entregas pequenas e validáveis por fase.
 - `../AGENTS.md`: orientações para o Codex, incluindo explicações didáticas.
 
-**Próximo passo:** verificar ambiente Flutter/Android e iniciar `F0-01` do `TASKS.md`. Os documentos descrevem planejamento; o aplicativo ainda não foi implementado.
+**Progresso de implementação:** consultar `TASKS.md` e os relatórios de execução. Em 09/11/2026, Fases 0/1 foram concluídas; os demais requisitos deste documento continuam como escopo planejado do MVP. Esta atualização de progresso não altera as regras aprovadas.

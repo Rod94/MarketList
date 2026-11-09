@@ -3,11 +3,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:market_list/app/app.dart';
 import 'package:market_list/core/preferences/theme_preference.dart';
 
+import '../support/fake_shopping_repository.dart';
+
 void main() {
-  testWidgets('F0-05: aplicativo abre com a demonstração de temas', (
+  Future<void> openAppearance(WidgetTester tester) async {
+    await tester.pumpWidget(
+      MarketListApp(repository: FakeShoppingRepository()),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Minhas listas'), findsOneWidget);
+    await tester.tap(find.byTooltip('Aparência'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('F0-05 / F1-04: aplicativo abre listas e permite acessar temas', (
     tester,
   ) async {
-    await tester.pumpWidget(const MarketListApp());
+    await openAppearance(tester);
 
     expect(find.text('MarketList'), findsOneWidget);
     expect(find.text('Aparência'), findsOneWidget);
@@ -16,7 +28,7 @@ void main() {
   });
 
   testWidgets('F0-04 / UX-009: alterna AMOLED preto e claro', (tester) async {
-    await tester.pumpWidget(const MarketListApp());
+    await openAppearance(tester);
 
     await tester.tap(find.byType(DropdownButton<ThemePreference>));
     await tester.pumpAndSettle();
@@ -44,7 +56,7 @@ void main() {
   ) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    await tester.pumpWidget(const MarketListApp());
+    await openAppearance(tester);
 
     expect(
       Theme.of(tester.element(find.byType(Scaffold))).scaffoldBackgroundColor,
@@ -69,7 +81,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    await tester.pumpWidget(const MarketListApp());
+    await openAppearance(tester);
     await tester.tap(find.byType(DropdownButton<ThemePreference>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('AMOLED').last);

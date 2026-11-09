@@ -2,18 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../core/database/app_database.dart';
 import '../core/preferences/theme_preference.dart';
-import '../features/shopping/presentation/screens/scaffold_screen.dart';
+import '../features/shopping/data/sqlite_shopping_repository.dart';
+import '../features/shopping/domain/shopping_repository.dart';
+import '../features/shopping/presentation/screens/shopping_lists_screen.dart';
+import '../features/shopping/presentation/view_models/shopping_lists_view_model.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_view_model.dart';
 
 class MarketListApp extends StatelessWidget {
-  const MarketListApp({super.key});
+  const MarketListApp({super.key, this.repository});
+
+  final ShoppingRepository? repository;
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeViewModel(),
+    return MultiProvider(
+      providers: [
+        Provider<ShoppingRepository>(
+          create: (_) => repository ?? SqliteShoppingRepository(AppDatabase()),
+        ),
+        ChangeNotifierProvider(create: (_) => ThemeViewModel()),
+        ChangeNotifierProvider(
+          create: (context) =>
+              ShoppingListsViewModel(context.read<ShoppingRepository>())
+                ..load(),
+        ),
+      ],
       child: const _ThemedApp(),
     );
   }
@@ -39,7 +55,7 @@ class _ThemedApp extends StatelessWidget {
         ThemePreference.light => ThemeMode.light,
         ThemePreference.amoled => ThemeMode.dark,
       },
-      home: const ScaffoldScreen(),
+      home: const ShoppingListsScreen(),
     );
   }
 }

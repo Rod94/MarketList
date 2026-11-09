@@ -1,6 +1,7 @@
 # TASKS.md — Plano incremental de desenvolvimento
 
-**Versão:** 0.3 — Fase 0 e F1-01 feitas; demais tarefas pendentes  
+**Versão:** 0.6 — Fases 0 e 1 concluídas; Fase 2 não iniciada
+
 **Data:** 09/11/2026 (plano original: 07/11/2026)  
 **Fontes de verdade:** `SPEC.md` (regras), `DESIGN.md` (interação), `ARCHITECTURE.md` (estrutura), `TESTING.md` (casos), `DECISIONS.md` (decisões).
 
@@ -40,15 +41,15 @@
 
 **Objetivo:** criar, listar e remover listas ativas mesmo sem conexão.
 
-| Tarefa | Entrega | Critério de conclusão |
-| --- | --- | --- |
-| F1-01 | Modelos de `ShoppingList`, ID e datas em UTC | Testes de domínio de validação/estado aprovados |
-| F1-02 | `AppDatabase` e migração SQLite inicial | Integridade referencial e abertura/versão testadas |
-| F1-03 | Repositório para criar/listar/remover lista ativa | CT-001, CT-002, CT-003 aprovados |
-| F1-04 | Tela `Minhas listas` e formulário de criação | Fluxo de criação e retorno claros; widget test |
-| F1-05 | Abrir lista após fechar/reiniciar em modo avião | Teste de integração com banco real, quando disponível |
+| Tarefa | Entrega | Critério de conclusão | Status real |
+| --- | --- | --- | --- |
+| F1-01 | Modelos de `ShoppingList`, ID e datas em UTC | Testes de domínio de validação/estado aprovados | **Feito:** modelo imutável e 21 testes de domínio |
+| F1-02 | `AppDatabase` e migração SQLite inicial | Integridade referencial e abertura/versão testadas | **Feito:** v1, FK e 15 testes SQLite; validação nativa |
+| F1-03 | Repositório para criar/listar/remover lista ativa | CT-001, CT-002, CT-003 aprovados | **Feito:** 26 testes do repositório; confirmação de persistência e proteção de finalizadas |
+| F1-04 | Tela `Minhas listas` e formulário de criação | Fluxo de criação e retorno claros; widget test | **Feito:** nome/orçamento, estados de erro/carga, ID de retry, exclusão confirmada; 23 testes unitários e 13 novos de widget |
+| F1-05 | Abrir lista após fechar/reiniciar em modo avião | Teste de integração com banco real, quando disponível | **Feito:** roteiro ADB no app normal, sem rede padrão, criou lista, force-stop, novo PID, dados recuperados; limpeza restrita e rede/tela restauradas |
 
-**Status real — 09/11/2026:** **F1-01 feita** após autorização para prosseguir. Modelo `ShoppingList` imutável, ID externo não vazio, nome validado, datas normalizadas em UTC e estados coerentes; 21 testes novos aprovados. `flutter analyze` sem problemas; `flutter test` com **28 aprovados** incluindo a regressão da Fase 0; formatação de 13 arquivos verificada. F1-02 a F1-05 continuam **pendentes e não iniciadas**. Não há persistência nem mudança de interface nesta tarefa. Evidência e aprendizado: `PHASE_1_REPORT.md`.
+**Status real — 09/11/2026:** **Fase 1 concluída.** Testes finais: **105 convencionais aprovados**, **9 de integração Android aprovados** (3 interface + 6 banco/repositório), mais **1 roteiro de reinício offline aprovado** no banco normal do app. Análise sem problemas, 28 arquivos Dart formatados e APK debug instalado. Interrupções do runner e diagnóstico sem DDS incompatível foram registrados; a execução com DDS normal passou sem relaxar expectativas. O teste offline removeu somente a própria lista e restaurou modo avião/Wi-Fi/tela; rede padrão reconectada confirmada. Evidências em `PHASE_1_REPORT.md`.
 
 **Critérios:** persistência após reiniciar; erro de gravação não exibe falso sucesso; lista ativa identificada claramente.
 
@@ -155,6 +156,6 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**F1-01 entregue.** Próxima tarefa pequena de produto: **F1-02 — AppDatabase e migração SQLite inicial**, ainda não iniciada. A autorização para prosseguir foi recebida; manter uma tarefa pequena por entrega. Pendência de ambiente da Fase 0: configurar Android cmdline-tools/revisar licenças para eliminar a advertência do doctor, caso essa instalação seja autorizada.
+**Fase 1 entregue.** Próxima tarefa pequena sugerida: **F2-01 — modelo de item e quantidade planejada opcional**, somente após autorização para iniciar a Fase 2. A advertência antiga de cmdline-tools/licenças do doctor não foi reavaliada nesta entrega. Produtos, preços, compra, finalização e histórico ainda não estão implementados.
 
-**Estado atual:** F0-01 a F0-06 e F1-01 **feitas**, com limites documentados; F1-02 em diante **pendentes e não iniciadas**. Em 09/11/2026, o Git local foi inicializado em `main`, com origin `https://github.com/Rod94/MarketList.git`. A base atual fica registrada no primeiro commit; `AGENTS.md` permanece local e ignorado, conforme solicitado. Os relatos anteriores de ausência de `.git` nos relatórios de fases são históricos das execuções originais.
+**Estado atual:** Fases 0/1 **feitas**, com limites documentados; Fase 2 em diante **pendentes e não iniciadas**. O primeiro commit registrou F0/F1-01; seu título solicitado anteriormente não descrevia a Fase 1 inteira. Esta entrega reúne o restante da Fase 1 para commit/envio autorizado pelo usuário. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos antigos de ausência de `.git` são históricos.
