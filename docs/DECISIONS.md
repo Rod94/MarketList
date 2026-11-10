@@ -39,6 +39,9 @@ Este documento registra *o que decidimos* e separa essas decisões de propostas 
 | D-028 | Preço zero é gratuito explícito; vazio é ausência | Aprovado pelo usuário em 10/11/2026 |
 | D-029 | Centavos e resultados limitados a inteiros de 64 bits, com overflow recusado | Aprovado pelo usuário; sem teto comercial arbitrário |
 | D-030 | Valor direto em item planejado mantém quantidade não confirmada, inclusive caso misto | Aprovado pelo usuário; valor contado e item em A comprar |
+| D-031 | Permitir nomes duplicados em novas linhas sem interromper com sugestão | Aprovado pelo usuário em 10/11/2026; outro preço usa item existente |
+| D-032 | Desfazer remoção por 5 segundos; sair da tela encerra oportunidade | Aprovado pelo usuário para polimento F4 |
+| D-033 | Tema inicialmente segue sistema e lembra seleção do usuário | Aprovado pelo usuário para F4-05 |
 
 ## 2. Propostas técnicas e validação no scaffold
 
@@ -59,10 +62,10 @@ Este documento registra *o que decidimos* e separa essas decisões de propostas 
 | --- | --- | --- | --- |
 | Q-001 | **Resolvida pelo usuário em 10/11/2026:** zero é gratuito explícito; vazio é ausência. D-028/D-029 | F3-01 | Validação e soma |
 | Q-002 | **Resolvida pelo usuário em 10/11/2026:** valor direto não confirma quantidade planejada; usar Quantidade não confirmada. D-030 | F3-03/06 | Estado, filtro e revisão |
-| Q-003 | Ao digitar nome já existente, sugerir reaproveitá-lo sem impedir duplicatas legítimas? | Antes de F3-07 | Cadastro rápido |
-| Q-004 | Qual duração e comportamento do `Desfazer` após remover item? | Antes do polimento F4 | Recuperação de erro |
+| Q-003 | **Resolvida em 10/11/2026:** permitir nova linha sem interrupção/sugestão obrigatória. D-031 | F3-07 | Cadastro rápido |
+| Q-004 | **Resolvida em 10/11/2026:** 5 segundos, sair da tela encerra. D-032 | F4 | Recuperação de erro |
 | Q-005 | É permitido apagar do aparelho uma lista histórica finalizada? Em caso positivo, qual confirmação? | Antes de F6 | Exclusão vs. imutabilidade |
-| Q-006 | Tema inicial segue o sistema ou tema selecionado na primeira execução? | Antes de F4-05 | Preferência visual |
+| Q-006 | **Resolvida em 10/11/2026:** seguir sistema inicialmente e persistir escolha. D-033 | F4-05 | Preferência visual |
 | Q-007 | Precisaremos de exportação/backup local no primeiro lançamento público? | Antes do release para público mais amplo | Risco de perda de dados por desinstalação/aparelho |
 
 **Como resolver:** registrar opção escolhida, justificativa, efeito em `SPEC.md`, `DESIGN.md`, `TESTING.md`, testes novos e eventuais migrações. O Codex não deve transformar uma pergunta aberta em regra sem antes documentar a hipótese e apresentar a alternativa.
@@ -229,3 +232,9 @@ F3-03: calculadora deriva pendente/parcial/comprado/quantidade não confirmada/r
 - Compatibilidade: abrir v3 exige APK compatível; APKs antigos v1/v2 recusam o downgrade. Não usar reinstalação antiga/limpeza como reparo. Testes isolam arquivos e comandos nativos usam --no-uninstall. Nenhuma regra de negócio foi alterada.
 
 F3-05: total desconhecido antes da primeira leitura é null, não zero inventado. Rascunho/prévia têm ciclo separado de fotografia confirmada. Sucesso de gravação troca a fotografia inteira; erro preserva a anterior e os campos/ID. Alterar/remover produto confirmado recalcula apenas a fotografia do cache com entradas já confirmadas; recarregar consulta o banco. Mesma guarda pendente protege planejamento e entradas. Sem mudança de esquema ou regra de negócio.
+
+## 17. Painel e decisões seguintes — F3-06, 10/11/2026
+
+- Painel do produto mantém planejamento editável, mostra entradas/subtotal confirmados e permite registrar outro preço, corrigir ou excluir entrada. Formulário de entrada separa quantidade comprada do planejamento; vazio muda rótulo para Valor total. Prévia não entra na soma. Exibir valor zero não transforma gratuito em pendente.
+- Estado textual básico e total no cabeçalho são necessários para não apresentar compra registrada como pendente. F4 ainda tratará filtros, acessibilidade refinada e barra inferior fixa. Layout estreito/fonte ampliada coloca valor abaixo do status, pois trailing comprimia o nome a ponto de impedir o toque; teste revelou e confirmou a correção.
+- D-031/032/033 foram aprovadas em perguntas explícitas ao usuário. Alternativas: sugestão de reaproveitar nome; desfazer por 10 s/sem desfazer; AMOLED inicial. Escolhidas nova linha sem interrupção, desfazer 5 s enquanto permanece na tela e sistema inicial com escolha persistida. Essas decisões serão implementadas em suas tarefas, sem marcar F4 pronta agora.

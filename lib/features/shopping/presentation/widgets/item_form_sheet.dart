@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/money/money.dart';
+import '../../domain/models/purchase_entry.dart';
+import '../purchase_status_text.dart';
 import '../view_models/shopping_items_view_model.dart';
+import 'purchase_entry_sheet.dart';
 
 enum ItemFormResult { saved, removed }
 
@@ -43,6 +47,118 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
     if (removed && mounted) Navigator.pop(context, ItemFormResult.removed);
   }
 
+  Future<void> _openPurchase([PurchaseEntry? entry]) async {
+    final model = context.read<ShoppingItemsViewModel>();
+    final item = model.editingItem;
+    if (item == null || !model.beginPurchase(item, entry: entry)) return;
+    try {
+      final saved = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        useSafeArea: true,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+        builder: (_) => ChangeNotifierProvider.value(
+          value: model,
+          child: const PurchaseEntrySheet(),
+        ),
+      );
+      if (saved == true && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Entrada confirmada.')));
+      }
+    } finally {
+      model.clearPurchaseDraft();
+    }
+  }
+
+  Future<void> _removeEntry(PurchaseEntry entry) async {
+    final removed = await context.read<ShoppingItemsViewModel>().removeEntry(
+      entry,
+    );
+    if (removed && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Entrada excluída.')));
+    }
+  }
+
+  Widget _entries(ShoppingItemsViewModel model) {
+    final summary = model.summaryFor(model.editingItem!.id);
+    if (summary == null) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.medium),
+        const Divider(),
+        Text(
+          'Compra registrada',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        Text(purchaseStatusText(summary)),
+        Text('Subtotal confirmado: ${formatMoneyCents(summary.subtotalCents)}'),
+        for (var index = 0; index < summary.entries.length; index++)
+          Builder(
+            builder: (context) {
+              final entry = summary.entries[index];
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  entry.isDirect
+                      ? 'Valor total: ${formatMoneyCents(entry.directAmountCents!)}'
+                      : '${entry.quantity} × ${formatMoneyCents(entry.unitPriceCents!)}',
+                ),
+                subtitle: Text(
+                  'Subtotal: ${formatMoneyCents(entry.subtotalCents)}',
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Editar preço ${index + 1}',
+                      onPressed: model.canEdit
+                          ? () => _openPurchase(entry)
+                          : null,
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
+                    IconButton(
+                      tooltip: 'Excluir preço ${index + 1}',
+                      onPressed: model.canEdit
+                          ? () => _removeEntry(entry)
+                          : null,
+                      icon: model.removingEntryId == entry.id
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        TextButton.icon(
+          onPressed: model.canEdit ? () => _openPurchase() : null,
+          icon: const Icon(Icons.add),
+          label: Text(
+            summary.entries.isEmpty
+                ? 'Registrar preço'
+                : 'Adicionar outro preço',
+          ),
+        ),
+        if (model.purchaseError != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              model.purchaseError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final model = context.watch<ShoppingItemsViewModel>();
@@ -74,7 +190,7 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
                       TextField(
                         key: const ValueKey('item-name'),
                         controller: _name,
-                        autofocus: true,
+                        autofocus: model.editingItem == null,
                         enabled: !model.isSaving && !model.readOnly,
                         textCapitalization: TextCapitalization.sentences,
                         textInputAction: TextInputAction.next,
@@ -102,6 +218,7 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
                           errorMaxLines: 4,
                         ),
                       ),
+                      if (model.editingItem != null) _entries(model),
                       if (model.isSaving)
                         LinearProgressIndicator(
                           semanticsLabel: model.isRemoving
@@ -154,7 +271,11 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
                             ? null
                             : _save,
                         child: Text(
-                          model.isSaving ? 'Salvando…' : 'Salvar produto',
+                          model.isSaving
+                              ? 'Salvando…'
+                              : model.editingItem == null
+                              ? 'Salvar produto'
+                              : 'Salvar planejamento',
                         ),
                       ),
                     ),

@@ -491,3 +491,11 @@ Primeira integração app_smoke_test --no-uninstall/-d RXCY300NZZH/--verbose sai
 Segunda tentativa ainda bloqueada também saiu 79. Após resposta do usuário/desbloqueio e keep-awake USB temporário, o mesmo comando passou **8 testes**, saída 0, build/f3-05-android-ui-unlocked.log. Sem mudança de asserções. O wrapper captura stay-on e restaura em finally. Não se extrapola esse diagnóstico para explicar todas as interrupções antigas do SDK.
 
 Build normal F3-05 aprovado em 11,0 s, install -r Success e am start Status: ok/COLD. Stay-on restaurado 0, igual ao original. 49 arquivos Dart na verificação final; sem nova migração ou iOS/release.
+
+## 28. F3-06 — múltiplos preços no painel, 10/11/2026
+
+purchase_entry_sheet_test.dart acrescenta **8 testes de widget**: dois preços→1890, correção/substituição/exclusão isolada, valor direto/não confirmado, gratuito, erro/retry, confirmação pendente, validação e teclado/fontes. Primeira execução **7 aprovados/1 falha**: em 320×568/fonte 2×, trailing comprimía o nome e seu ponto de toque ficava fora do viewport. Corrigido layout para valor abaixo do status em tela estreita/fonte grande, sem afrouxar expectativas; seguinte **8 aprovados**.
+
+`dart format .`: 52 arquivos; `flutter analyze`: sem problemas. `flutter test --reporter expanded`: **289 aprovados/0 falhas**, saída 0, build/f3-06-regression.log. `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose`: **10 aprovados**, saída 0, build/f3-06-android-ui.log. Novos 2 nativos registram/corrigem/excluem múltiplos preços e comprovam erro SQL com campos/total preservados. Banco/contrato não mudaram. Corpo exibe total confirmado no cabeçalho; barra inferior e filtros continuam para F4. Resultado do APK no relatório da fase.
+
+F3-06 build debug aprovado em 11,2 s; normal instalado/aberto (Success/Status: ok/COLD), cópia marketlist-f3-06-debug.apk. Sem uninstall ou novo esquema.

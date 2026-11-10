@@ -1,6 +1,6 @@
 # TASKS.md — Plano incremental de desenvolvimento
 
-**Versão:** 1.5 — Fases 0/1/2 concluídas; F3-01 a F3-05 concluídas
+**Versão:** 1.6 — Fases 0/1/2 concluídas; F3-01 a F3-06 concluídas
 
 **Data:** 10/11/2026 (plano original: 07/11/2026)
 **Fontes de verdade:** `SPEC.md` (regras), `DESIGN.md` (interação), `ARCHITECTURE.md` (estrutura), `TESTING.md` (casos), `DECISIONS.md` (decisões).
@@ -90,7 +90,7 @@
 | F3-03 | Calculadora pura de item/lista e compra parcial | CT-008 a CT-010, CT-013 a CT-017, CT-020, CT-026 | **Feito no domínio:** 22 novos casos de cálculo/estados/invariantes; regressão 246 aprovados; histórico UI ainda F5/F6 |
 | F3-04 | SQLite para inserir/atualizar/excluir entradas | CT-022 a CT-027; transações e integridade | **Feito:** migração v3, fotografia transacional e rollback por overflow/erro; 23 novos testes SQLite, regressão 269 aprovados |
 | F3-05 | ViewModel atualiza total após sucesso de persistência | CT-033 a CT-035 e UX-008 | **Feito:** fotografia confirmada separada da prévia; 12 novos testes, regressão 281 aprovados e 8 nativos após desbloqueio |
-| F3-06 | Painel de item existente e `Adicionar outro preço` | UX-020; 3 × 3,50 + 2 × 4,20 = R$ 18,90 | Pendente |
+| F3-06 | Painel de item existente e `Adicionar outro preço` | UX-020; 3 × 3,50 + 2 × 4,20 = R$ 18,90 | **Feito:** painel/formulário, correção/exclusão, prévia e totais confirmados; 8 novos widgets, regressão 289 e 10 nativos aprovados |
 | F3-07 | Produto espontâneo com quantidade/preço no mesmo formulário | CT-018/CT-019, UX-003/UX-004 | Pendente |
 
 **Decisões resolvidas pelo usuário em 10/11/2026:** zero explícito é gratuito (D-028); limite técnico int64 com overflow recusado (D-029); valor direto em item planejado, inclusive caso misto, mantém Quantidade não confirmada e A comprar (D-030). Autorizado seguir da F3 em diante fase por fase, uma tarefa/commit por vez, parando somente quando decisão necessária ou portão de qualidade impedir.
@@ -166,6 +166,6 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**F3-05 entregue.** Próxima tarefa pequena: **F3-06 — painel de entradas e múltiplos preços**, já autorizada. Sem campo visual de preços nesta tarefa; painel F3-06 e inclusão com preço F3-07 ainda pendentes. Continuar fase por fase mantendo tarefa/commit individual.
+**F3-06 entregue.** Próxima tarefa pequena: **F3-07 — inclusão rápida de produto com preço opcional**, já autorizada. D-031 permite nomes duplicados sem interrupção; D-032/033 aprovam Desfazer 5 s e tema do sistema com seleção persistida para F4. Continuar fase por fase mantendo tarefa/commit individual.
 
-**Estado atual:** Fases 0/1/2 e F3-01 a F3-05 **feitas**; F3-06 em diante **pendentes e autorizadas sequencialmente**. Banco atual v3; UI ainda de planejamento. Relatório da F3 registra testes nativos/APK e limitações. `AGENTS.md`, bancos, APKs e logs continuam ignorados.
+**Estado atual:** Fases 0/1/2 e F3-01 a F3-06 **feitas**; F3-07 em diante **pendentes e autorizadas sequencialmente**. Banco v3; preços existentes já podem ser registrados/corrigidos/excluídos pela UI. Cadastro novo com preço ainda pendente. `AGENTS.md`, bancos, APKs e logs continuam ignorados.

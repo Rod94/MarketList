@@ -188,7 +188,7 @@ Não armazenar marca como requisito. Se desejar, o usuário escreve `Sabonete Do
 - **Comprado:** existe registro; se houver quantidade planejada, ela foi atingida ou ultrapassada.
 - **Filtro `A comprar`:** mostra pendentes, parciais e casos cuja quantidade ainda não pôde ser confirmada; não altera o total.
 
-Caso misto a tratar com atenção: **uma entrada de valor direto em um produto que tem quantidade planejada não prova quantas unidades foram compradas**. Não presumir conclusão. Mostrar `quantidade não confirmada` na revisão, ou orientar o usuário a registrar quantidade e preço unitário. Este refinamento fica pendente de validação de UX.
+**D-030 aprovada em 10/11/2026:** entrada de valor direto em produto planejado não prova a quantidade total comprada, mesmo misturada a unidades conhecidas suficientes. Manter Quantidade não confirmada e A comprar, sem deixar de somar valores. Modelo/calculadora/painel F3 já respeitam essa decisão; filtros/revisão serão ligados em suas fases.
 
 ## 6. Esquema SQLite inicial (conceitual)
 
@@ -440,3 +440,5 @@ F3-03 introduziu calculateShoppingList, ShoppingCalculation e ItemPurchaseSummar
 AppDatabase abre v3 e aplica v1/v2/v3 incrementalmente. Purchase_entries guarda somente campos de PurchaseEntry, sem subtotal/estado duplicado, com FK/cascade e índice. O repositório mapeia dados e cria/edita/exclui em transações com guarda de lista ativa/item não removido. Retorna ShoppingCalculation calculada dentro da mesma transação, após checar limites; Future só conclui após commit. Erro no cálculo ou SQL reverte a escrita inteira. loadShoppingList lê itens/entradas consistentemente e inclui tombstones no domínio, que os exclui do total. Fake de UI ainda não implementa essas operações até a ligação F3-05.
 
 F3-05 liga a fotografia ao ShoppingItemsViewModel. Total confirmado é nullable antes da carga, prévia deriva de rascunho separado e gravações aceitam só fotografia retornada pelo repositório. Planejamento confirmado reutiliza entradas confirmadas do cache para refletir alterações de nome/remoção sem um segundo salvamento. Operações de entrada/planejamento compartilham bloqueio pendente; nenhum SQL/cálculo baseado em double entra em widget. Fake agora permite controlar respostas de compra nos testes.
+
+F3-06 liga o formulário PurchaseEntrySheet ao painel ItemFormSheet. Status textual compartilhado vem de purchase_status_text.dart; subtotal/total usam fotografia confirmada. Modais compartilham a mesma instância via Provider.value e não assumem posse dela. Tela estreita/fonte grande usa valor abaixo do status para preservar espaço do nome. Sem nova migração.

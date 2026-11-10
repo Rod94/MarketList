@@ -71,3 +71,19 @@ Para testar agora: `flutter test test/unit/shopping_purchase_state_test.dart`. A
 Integração Android: duas tentativas incompletas saíram 79; inspeção encontrou aparelho Dozing/bloqueado. Usuário desbloqueou. Repetição com mesmas asserções e tela mantida acordada temporariamente passou com **8 testes**, saída 0 (build/f3-05-android-ui-unlocked.log), incluindo fotografia real/prévia/falha SQL/retry. A configuração de tela foi capturada para restauração em finally. Não se declara a causa histórica de todas as interrupções resolvida por essa observação.
 
 Build F3-05: `flutter build apk --debug` aprovado em **11,0 s**; cópia marketlist-f3-05-debug.apk instalada (**Success**) e aberta (**Status: ok / COLD**). Stay-on retornou **0**, igual ao original. Verificação final de formatação: 49 arquivos. Sem nova migração, preços visuais ou iOS/release.
+
+## F3-06 — Painel de múltiplos preços
+
+**Concluída em 10/11/2026.** Toque no produto abre planejamento e compra registrada. Registrar preço/Adicionar outro preço usa quantidade comprada opcional e preço unitário ou valor total. Entradas podem ser corrigidas/excluídas isoladamente; subtotal e total mudam só após confirmação. Estados textuais já evitam chamar comprado/gratuito de pendente. Filtros/barra inferior/polimento continuam para F4.
+
+Arquivos: novos widgets/purchase_entry_sheet.dart, purchase_status_text.dart e test/widget/purchase_entry_sheet_test.dart (8 casos); item_form_sheet.dart liga entradas/ações ao mesmo ViewModel; shopping_screen.dart exibe subtotal/estado/total confirmado; app_smoke_test.dart ganha 2 cenários financeiros. README e docs de design/decisões/testes/tarefas/relatório atualizados. Sem alteração de SQL/migração/contrato.
+
+Fluxo: painel compartilha ViewModel → modal de entrada mantém controladores → digitação produz prévia → confirmar chama repositório → fotografia confirmada → painel/lista atualizam. Cancelar só descarta rascunho, não desfaz compra já confirmada. Planejamento e quantidade comprada continuam campos distintos. Modal aninhado usa Provider.value, com bloqueio global enquanto grava; não há SQL em widgets.
+
+Conceitos: State cria/descarta TextEditingControllers; callbacks encaminham ações; getters/calculadora fornecem estado. Finder/gestos de teste exercitam a UI real. Layout responsivo considera largura e textScaler: o teste revelou nome comprimido pelo valor à direita com fonte 2×; valor passou para linha abaixo nesses casos, mantendo toque e leitura. Sem esconder avisos de hit test ou mudar expectativa para caber no problema.
+
+Testes: **7/1** inicialmente nos novos widgets, **8/0** após corrigir layout. Análise sem problemas; regressão **289/0 falhas**, 52 arquivos formatados. Android **10 aprovados**, incluindo registro 3×3,50+2×4,20=18,90, correção/substituição/exclusão e erro SQL com formulário preservado. Logs em build/f3-06-*. Sem teste offline novo/iOS/release nesta tarefa; o reinício com preços será validado ao fechar F3.
+
+Como validar: cadastre Sabonete planejado 5, abra-o, registre 3 a 3,50 e depois Adicionar outro preço com 2 a 4,20. Confira 18,90; corrija ou exclua uma entrada e confira só a diferença. Exercício opcional numa branch de treino: acrescentar teste de excluir a primeira entrada e manter a segunda. Próxima F3-07, inclusão rápida com preço. D-031/032/033 foram aprovadas para as tarefas seguintes e registradas, sem antecipar sua implementação.
+
+APK normal F3-06: `flutter build apk --debug` aprovado em **11,2 s**; cópia marketlist-f3-06-debug.apk instalada (**Success**) e aberta (**Status: ok / COLD**). Normal substituiu variante de integração, sem uninstall. O modo keep-awake USB da sessão de desenvolvimento permanece temporário e será restaurado ao encerrar a sequência, conforme informado ao usuário; baseline em build/f3-android-session-state.json, ignorado.

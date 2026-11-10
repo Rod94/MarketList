@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/money/money.dart';
 import '../../domain/models/shopping_item.dart';
 import '../view_models/shopping_items_view_model.dart';
+import '../purchase_status_text.dart';
 import '../widgets/item_form_sheet.dart';
 
 class ShoppingScreen extends StatelessWidget {
@@ -46,6 +48,9 @@ class ShoppingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final model = context.watch<ShoppingItemsViewModel>();
     final visibleItems = model.visibleItems;
+    final compactAmounts =
+        MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.textScalerOf(context).scale(14) > 20;
     return PopScope(
       canPop: !model.isSaving,
       child: Scaffold(
@@ -88,6 +93,14 @@ class ShoppingScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+              if (model.totalCents != null)
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.small),
+                  child: Text(
+                    'Total registrado: ${formatMoneyCents(model.totalCents!)}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
               Expanded(
                 child: visibleItems.isEmpty
                     ? Center(
@@ -104,20 +117,42 @@ class ShoppingScreen extends StatelessWidget {
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final item = visibleItems[index];
+                          final summary = model.summaryFor(item.id)!;
                           return ListTile(
                             key: ValueKey('item-${item.id}'),
                             title: Text(item.name),
-                            subtitle: Text(
-                              item.removedAt != null
-                                  ? 'Removido'
-                                  : item.plannedQuantity == null
-                                  ? 'Pendente · Quantidade não informada'
-                                  : 'Pendente · Planejado: ${item.plannedQuantity}',
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(purchaseStatusText(summary)),
+                                if (compactAmounts)
+                                  Text(
+                                    summary.entries.isEmpty
+                                        ? 'Sem preço'
+                                        : formatMoneyCents(
+                                            summary.subtotalCents,
+                                          ),
+                                  ),
+                              ],
                             ),
                             onTap: model.canEdit && item.removedAt == null
                                 ? () => _openForm(context, item)
                                 : null,
-                            trailing: const Icon(Icons.chevron_right),
+                            trailing: compactAmounts
+                                ? const Icon(Icons.chevron_right)
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        summary.entries.isEmpty
+                                            ? 'Sem preço'
+                                            : formatMoneyCents(
+                                                summary.subtotalCents,
+                                              ),
+                                      ),
+                                      const Icon(Icons.chevron_right),
+                                    ],
+                                  ),
                           );
                         },
                       ),

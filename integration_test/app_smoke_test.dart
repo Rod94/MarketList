@@ -50,6 +50,131 @@ void main() {
   }
 
   testWidgets(
+    'F3-06 Android: painel registra dois preços, corrige e exclui sem duplicar',
+    (tester) async {
+      await repository.createList(id: 'market', name: 'Compra mercado');
+      await repository.createItem(
+        id: 'soap',
+        shoppingListId: 'market',
+        name: 'Sabonete',
+        plannedQuantity: 5,
+        origin: ShoppingItemOrigin.planned,
+      );
+      await openApp(tester);
+      await tester.tap(find.text('Compra mercado'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sabonete'));
+      await tester.pumpAndSettle();
+      Future<void> register(
+        String quantity,
+        String price, {
+        bool another = false,
+      }) async {
+        final action = find.text(
+          another ? 'Adicionar outro preço' : 'Registrar preço',
+        );
+        await tester.ensureVisible(action);
+        await tester.tap(action);
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('purchase-quantity')),
+          quantity,
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('purchase-price')),
+          price,
+        );
+        await tester.tap(find.byKey(const ValueKey('save-purchase')));
+        await tester.pumpAndSettle();
+      }
+
+      await register('3', '3,50');
+      await register('2', '4,20', another: true);
+      expect(find.text('Subtotal confirmado: R\$ 18,90'), findsOneWidget);
+      expect((await repository.loadShoppingList('market')).totalCents, 1890);
+      final firstRow = find.ancestor(
+        of: find.text('3 × R\$ 3,50'),
+        matching: find.byType(ListTile),
+      );
+      final edit = find.descendant(
+        of: firstRow,
+        matching: find.byIcon(Icons.edit_outlined),
+      );
+      await tester.ensureVisible(edit);
+      await tester.tap(edit);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('purchase-price')),
+        '3,00',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-purchase')));
+      await tester.pumpAndSettle();
+      expect((await db.query('purchase_entries')).length, 2);
+      expect(find.text('Subtotal confirmado: R\$ 17,40'), findsOneWidget);
+      final secondRow = find.ancestor(
+        of: find.text('2 × R\$ 4,20'),
+        matching: find.byType(ListTile),
+      );
+      final remove = find.descendant(
+        of: secondRow,
+        matching: find.byIcon(Icons.delete_outline),
+      );
+      await tester.ensureVisible(remove);
+      await tester.tap(remove);
+      await tester.pumpAndSettle();
+      expect(find.text('Subtotal confirmado: R\$ 9,00'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('cancel-item')));
+      await tester.pumpAndSettle();
+      expect(find.text('Total registrado: R\$ 9,00'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'F3-06 Android: valor direto com falha SQL mantém campos e total',
+    (tester) async {
+      await repository.createList(id: 'market', name: 'Compra mercado');
+      await repository.createItem(
+        id: 'meat',
+        shoppingListId: 'market',
+        name: 'Carne',
+        origin: ShoppingItemOrigin.planned,
+      );
+      await db.execute(
+        '''CREATE TRIGGER fail_entry_form BEFORE INSERT ON purchase_entries
+      BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END''',
+      );
+      await openApp(tester);
+      await tester.tap(find.text('Compra mercado'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Carne'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Registrar preço'));
+      await tester.tap(find.text('Registrar preço'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('purchase-price')),
+        '47,82',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-purchase')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Seus campos foram mantidos'), findsWidgets);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('purchase-price')))
+            .controller!
+            .text,
+        '47,82',
+      );
+      expect(find.text('Total registrado: R\$ 0,00'), findsOneWidget);
+      await db.execute('DROP TRIGGER fail_entry_form');
+      await tester.tap(find.byKey(const ValueKey('save-purchase')));
+      await tester.pumpAndSettle();
+      expect((await repository.loadShoppingList('market')).totalCents, 4782);
+      expect((await db.query('purchase_entries')).single['quantity'], isNull);
+    },
+  );
+
+  testWidgets(
     'F3-05 Android: total do ViewModel só muda após commit; erro preserva prévia',
     (tester) async {
       await repository.createList(id: 'price', name: 'Compra financeira');

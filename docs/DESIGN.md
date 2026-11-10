@@ -111,7 +111,7 @@ Correção de preço altera a entrada existente e recalcula a soma; não cria en
 
 - Remover um item da compra ativa deve ser uma operação explícita, facilmente encontrada no detalhe do item.
 - Remover item com preço desconta imediatamente seu subtotal após persistência.
-- Preferir uma ação `Desfazer` transitória a várias confirmações para operações reversíveis. **Duração exata e comportamento ao sair da tela ainda não aprovados.**
+- Oferecer `Desfazer` por **5 segundos** após remoção; sair da tela encerra a oportunidade (D-032, aprovado em 10/11/2026, implementação F4). Restauração deve respeitar lista ativa.
 - Excluir uma **lista inteira** é mais destrutivo; exigir confirmação com nome da lista e aviso de impacto. Definir separadamente a política de exclusão de listas históricas.
 
 ## 7. Orçamento e total
@@ -194,10 +194,10 @@ Esses valores são **tokens iniciais propostos**: passarão por verificação re
 
 ## 13. Questões de UX em aberto (não presumir aprovação)
 
-1. Como sinalizar `quantidade não confirmada` para item com quantidade planejada e preço direto.
-2. Duração/forma do botão `Desfazer` ao remover um produto.
-3. Política para nomes duplicados; sugerir item existente sem proibir duplicatas legítimas.
-4. Se o app deve sugerir uma preferência de tema ou seguir automaticamente o sistema na primeira execução.
+1. **Resolvida D-030:** sinalizar Quantidade não confirmada em planejado com valor direto, inclusive misto; manter A comprar sem alterar soma.
+2. **Resolvida D-032:** Desfazer por 5 segundos, sair da tela encerra (implementação F4).
+3. **Resolvida D-031:** nomes iguais podem virar nova linha sem interromper; múltiplos preços usam item existente.
+4. **Resolvida D-033:** seguir sistema inicialmente e lembrar a escolha do usuário (implementação F4-05).
 5. Se será possível excluir **listas históricas finalizadas** e, se sim, que confirmação apresentar.
 
 Estas questões podem ser resolvidas na fase relevante. Não devem impedir o scaffold, os cálculos ou o cadastro de listas e itens.

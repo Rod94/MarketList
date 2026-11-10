@@ -16,6 +16,8 @@ Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e 
 
 **F3-05:** ViewModel mantém total confirmado separado de prévias, preserva campos/ID no erro e só aceita fotografia após commit. **281 testes aprovados**, análise sem problemas, **8 nativos aprovados** após disponibilizar o aparelho desbloqueado. Painel visual de preço é a próxima tarefa.
 
+**F3-06:** toque no produto para registrar/corrigir/excluir entradas ou Adicionar outro preço. Subtotal/total refletem apenas compras confirmadas. **289 testes aprovados e 10 nativos**, análise sem problemas. Inclusão de produto novo com preço é a próxima tarefa; filtros/barra inferior/polimento serão F4.
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.
@@ -52,7 +54,7 @@ flutter test integration_test --no-uninstall -d ID_ANDROID
 flutter build apk --debug
 ```
 
-O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-f3-05-debug.apk` na mesma pasta, compatível com esquema v3. Sua UI ainda é de planejamento. Artefatos anteriores foram preservados. Após abrir v3, APKs antigos v1/v2 recusam a versão superior; não servem como rollback. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
+O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-f3-06-debug.apk` na mesma pasta, compatível com esquema v3 e painel de preços. Artefatos anteriores foram preservados. Após abrir v3, APKs antigos v1/v2 recusam a versão superior; não servem como rollback. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
 
 Use `--no-uninstall` na integração: o Flutter 3.47.9 desinstala o pacote por padrão ao encerrar o teste. A opção preserva a instalação e seus dados; ao terminar, gere/instale o APK normal para substituir a variante de teste. Os testes de banco/repositório usam exclusivamente arquivos temporários próprios.
 
