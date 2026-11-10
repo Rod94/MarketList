@@ -8,13 +8,15 @@ import '../../domain/models/purchase_entry.dart';
 import '../../domain/shopping_calculator.dart';
 import '../../domain/shopping_repository.dart';
 import '../item_quantity_input.dart';
+import '../list_budget_input.dart';
 
 class ShoppingItemsViewModel extends ChangeNotifier {
-  ShoppingItemsViewModel(this._repository, this.shoppingList)
-    : _readOnly = shoppingList.status == ShoppingListStatus.finalized;
+  ShoppingItemsViewModel(this._repository, this._shoppingList)
+    : _readOnly = _shoppingList.status == ShoppingListStatus.finalized;
 
   final ShoppingRepository _repository;
-  final ShoppingList shoppingList;
+  ShoppingList _shoppingList;
+  ShoppingList get shoppingList => _shoppingList;
   List<ShoppingItem> _items = const [];
   ShoppingCalculation? _calculation;
   String? _purchaseItemId;
@@ -80,6 +82,12 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   String? get quantityError => _quantityError;
   int? get totalCents => _calculation?.totalCents;
   ShoppingCalculation? get calculation => _calculation;
+  int? get remainingBudgetCents {
+    final budget = shoppingList.budgetCents;
+    final total = totalCents;
+    return budget == null || total == null ? null : budget - total;
+  }
+
   PurchaseEntry? get editingPurchase => _editingPurchase;
   String? get removingEntryId => _removingEntryId;
   String get purchaseQuantity => _purchaseQuantity;
@@ -125,6 +133,33 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       }
     } finally {
       _loading = false;
+      _notify();
+    }
+  }
+
+  Future<String?> saveBudget(String input) async {
+    if (!canEdit) return 'O orçamento não está disponível para edição.';
+    final int? budget;
+    try {
+      budget = parseListBudget(input);
+    } on FormatException catch (error) {
+      return error.message;
+    }
+    _saving = true;
+    _notify();
+    try {
+      _shoppingList = await _repository.updateListBudget(
+        shoppingList.id,
+        budget,
+      );
+      return null;
+    } on FinalizedShoppingListException {
+      _readOnly = true;
+      return 'A lista finalizada está disponível somente para consulta.';
+    } catch (_) {
+      return 'Não foi possível salvar. O valor digitado foi mantido.';
+    } finally {
+      _saving = false;
       _notify();
     }
   }

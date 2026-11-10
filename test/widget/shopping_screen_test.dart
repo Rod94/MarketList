@@ -181,6 +181,62 @@ void main() {
     },
   );
 
+  testWidgets('CT-028 a CT-031 orçamento opcional informa e não bloqueia', (
+    tester,
+  ) async {
+    seedPurchaseStatuses();
+    await open(tester);
+    const total = 'Total registrado: R\$ 79,42';
+    final amount = find.byKey(const ValueKey('edit-budget'));
+    final submit = find.text('Salvar orçamento');
+    expect(find.text(total), findsOneWidget);
+    expect(find.textContaining('disponíveis'), findsNothing);
+
+    Future<void> enter(String tooltip, String value) async {
+      await tester.tap(find.byTooltip(tooltip));
+      await tester.pumpAndSettle();
+      await tester.enterText(amount, value);
+    }
+
+    Future<void> save() async {
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(find.text(total), findsOneWidget);
+    }
+
+    await enter('Definir orçamento', '100,00');
+    repository.budgetHandler = (_, _) async => throw StateError('falha');
+    await save();
+    expect(tester.widget<TextField>(amount).controller!.text, '100,00');
+    expect(find.textContaining('O valor digitado foi mantido'), findsOneWidget);
+    repository.budgetHandler = null;
+    await save();
+    expect(find.text('R\$ 20,58 disponíveis'), findsOneWidget);
+
+    await enter('Editar orçamento', '79,42');
+    await save();
+    expect(find.text('Limite atingido'), findsOneWidget);
+    await enter('Editar orçamento', '0,00');
+    await save();
+    expect(find.text('R\$ 79,42 acima do orçamento'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const ValueKey('add-item')))
+          .onPressed,
+      isNotNull,
+    );
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Orçamento: R\$ 0,00'), findsOneWidget);
+
+    await tester.tap(find.text('Compra teste'));
+    await tester.pumpAndSettle();
+    await enter('Editar orçamento', '');
+    await save();
+    expect(find.textContaining('acima do orçamento'), findsNothing);
+    expect(find.byTooltip('Definir orçamento'), findsOneWidget);
+  });
+
   testWidgets(
     'F3-07 confirma a prévia somente após salvar e mantém o preço em falha',
     (tester) async {

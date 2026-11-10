@@ -112,6 +112,46 @@ void main() {
     expect(await db.query('shopping_lists'), isEmpty);
   });
 
+  test('CT-031 orçamento ativo pode mudar, ser zero ou ser retirado', () async {
+    final list = await create(budgetCents: 80000);
+    for (final value in [90000, 0, null]) {
+      final updated = await repository.updateListBudget(list.id, value);
+      expect(updated.budgetCents, value);
+      expect(updated.name, list.name);
+      expect(updated.createdAt, list.createdAt);
+      expect((await repository.listActiveLists()).single.budgetCents, value);
+    }
+  });
+
+  test(
+    'CT-031 orçamento rejeita lista finalizada, ausente e valor negativo',
+    () async {
+      await seed(id: 'history', finalized: true);
+      final active = await create(budgetCents: 80000);
+      await expectLater(
+        repository.updateListBudget(active.id, -1),
+        throwsRangeError,
+      );
+      await expectLater(
+        repository.updateListBudget('history', 0),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      await expectLater(
+        repository.updateListBudget('missing', 0),
+        throwsA(isA<ShoppingListNotFoundException>()),
+      );
+      expect((await repository.listActiveLists()).single.budgetCents, 80000);
+      expect(
+        (await db.query(
+          'shopping_lists',
+          where: 'id = ?',
+          whereArgs: ['history'],
+        )).single['budget_cents'],
+        isNull,
+      );
+    },
+  );
+
   test('F1-03: nomes iguais com IDs diferentes continuam permitidos', () async {
     await create(id: 'one');
     await create(id: 'two');

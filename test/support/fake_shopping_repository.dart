@@ -71,6 +71,27 @@ class FakeShoppingRepository implements ShoppingRepository {
   Future<ShoppingList> Function(String id, String name, int? budget)?
   createHandler;
   Future<bool> Function(String id)? removeHandler;
+  Future<ShoppingList> Function(String id, int? budget)? budgetHandler;
+
+  @override
+  Future<ShoppingList> updateListBudget(String id, int? budgetCents) async {
+    final handler = budgetHandler;
+    if (handler != null) return handler(id, budgetCents);
+    final index = lists.indexWhere((list) => list.id == id);
+    if (index == -1) throw ShoppingListNotFoundException(id);
+    final previous = lists[index];
+    if (previous.status == ShoppingListStatus.finalized) {
+      throw FinalizedShoppingListException(id);
+    }
+    final updated = ShoppingList(
+      id: previous.id,
+      name: previous.name,
+      createdAt: previous.createdAt,
+      budgetCents: budgetCents,
+    );
+    lists[index] = updated;
+    return updated;
+  }
 
   @override
   String newListId() => 'fake-${++idCalls}';

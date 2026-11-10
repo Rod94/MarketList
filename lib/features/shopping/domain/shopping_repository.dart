@@ -15,6 +15,8 @@ abstract interface class ShoppingRepository {
 
   Future<List<ShoppingList>> listActiveLists();
 
+  Future<ShoppingList> updateListBudget(String id, int? budgetCents);
+
   /// Retorna false se ausente; listas finalizadas são recusadas.
   Future<bool> removeActiveList(String id);
 

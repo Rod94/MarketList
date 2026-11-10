@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/money/money.dart';
 import '../domain/models/shopping_item.dart';
 import '../domain/models/shopping_list.dart';
 import '../domain/models/purchase_entry.dart';
@@ -456,6 +457,28 @@ final class SqliteShoppingRepository implements ShoppingRepository {
     // inverteria instantes como .000Z e .000001Z.
     lists.sort(ShoppingList.compareByNewestCreation);
     return List<ShoppingList>.unmodifiable(lists);
+  }
+
+  @override
+  Future<ShoppingList> updateListBudget(String id, int? budgetCents) async {
+    if (budgetCents != null) validateMoneyCents(budgetCents);
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireList(txn, id, writable: true);
+      final updated = await txn.update(
+        'shopping_lists',
+        {'budget_cents': budgetCents},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (updated != 1) throw StateError('O orçamento não foi atualizado.');
+      final rows = await txn.query(
+        'shopping_lists',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      return _fromRow(rows.single);
+    });
   }
 
   @override

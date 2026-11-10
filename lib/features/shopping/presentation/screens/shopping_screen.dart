@@ -7,6 +7,7 @@ import '../../domain/models/shopping_item.dart';
 import '../../domain/shopping_calculator.dart';
 import '../view_models/shopping_items_view_model.dart';
 import '../purchase_status_text.dart';
+import '../widgets/edit_budget_dialog.dart';
 import '../widgets/item_form_sheet.dart';
 
 class ShoppingScreen extends StatefulWidget {
@@ -18,6 +19,23 @@ class ShoppingScreen extends StatefulWidget {
 
 class _ShoppingScreenState extends State<ShoppingScreen> {
   bool _onlyToBuy = false;
+
+  Future<void> _editBudget(BuildContext context) async {
+    final model = context.read<ShoppingItemsViewModel>();
+    if (!model.canEdit) return;
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ChangeNotifierProvider.value(
+        value: model,
+        child: const EditBudgetDialog(),
+      ),
+    );
+    if (saved == true && context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Orçamento salvo.')));
+    }
+  }
 
   Future<void> _openForm(BuildContext context, [ShoppingItem? item]) async {
     final model = context.read<ShoppingItemsViewModel>();
@@ -73,6 +91,14 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
         appBar: AppBar(
           title: Text(model.shoppingList.name),
           actions: [
+            if (!model.readOnly)
+              IconButton(
+                tooltip: model.shoppingList.budgetCents == null
+                    ? 'Definir orçamento'
+                    : 'Editar orçamento',
+                onPressed: model.canEdit ? () => _editBudget(context) : null,
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+              ),
             IconButton(
               tooltip: 'Atualizar produtos',
               onPressed: model.isBusy ? null : model.load,
@@ -226,6 +252,21 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                         style: compactAmounts
                             ? Theme.of(context).textTheme.titleMedium
                             : Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                  if (model.remainingBudgetCents case final remaining?)
+                    Text(
+                      switch (remaining) {
+                        > 0 => '${formatMoneyCents(remaining)} disponíveis',
+                        0 => 'Limite atingido',
+                        _ =>
+                          '${formatMoneyCents(-remaining)} acima do orçamento',
+                      },
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: remaining < 0
+                            ? Theme.of(context).colorScheme.error
+                            : null,
                       ),
                     ),
                   FilledButton.icon(

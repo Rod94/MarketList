@@ -145,17 +145,20 @@ class ShoppingListsScreen extends StatelessWidget {
                         );
                         return ListTile(
                           onTap: viewModel.canEditLists
-                              ? () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => ChangeNotifierProvider(
-                                      create: (_) => ShoppingItemsViewModel(
-                                        context.read<ShoppingRepository>(),
-                                        list,
-                                      )..load(),
-                                      child: const ShoppingScreen(),
+                              ? () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => ChangeNotifierProvider(
+                                        create: (_) => ShoppingItemsViewModel(
+                                          context.read<ShoppingRepository>(),
+                                          list,
+                                        )..load(),
+                                        child: const ShoppingScreen(),
+                                      ),
                                     ),
-                                  ),
-                                )
+                                  );
+                                  if (context.mounted) await viewModel.load();
+                                }
                               : null,
                           title: Text(list.name),
                           subtitle: Column(
