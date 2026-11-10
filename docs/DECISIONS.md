@@ -178,3 +178,11 @@ Execução e aprendizado: `PHASE_2_REPORT.md` e seção 18 de `TESTING.md`. Orie
 - Mapeamento de itens permanece privado no repositório e reutiliza a validação UTC estrita já existente. Dados inválidos falham explicitamente sem descartar/reparar linhas. O fake de listas dos testes declara as novas operações não suportadas, sem introduzir falsa persistência de itens.
 
 Nenhuma regra de negócio aprovada foi substituída. Q-001 a Q-007 permanecem abertas. Risco de compatibilidade: após abrir v2, o APK antigo limitado à v1 não deve ser reinstalado como rollback; ele recusará o downgrade sem apagar dados. Continuar com APK compatível ou migração futura, nunca limpar banco como reparo.
+
+## 13. Interface de planejamento — F2-03, 10/11/2026
+
+- Toque numa lista abre ShoppingScreen com ShoppingItemsViewModel por rota, usando o repositório já composto no app. Provider.value compartilha esse ViewModel com o modal sem transferir sua posse. Não há SQL em widgets nem nova dependência.
+- O formulário contém nome obrigatório e quantidade inteira opcional juntos; parser puro preserva branco→null, rejeita zero/fração/negativos/overflow técnico. O rótulo ambíguo de TASKS foi corrigido para seguir SPEC/D-002. Marca/foto/categoria não foram introduzidas.
+- Esta fatia de planejamento não adiciona campo de preço/subtotal antes da F3. UX-001 completo (três campos) permanece dependente da F3; UX-002 já funciona na UI. Inclusões de planejamento usam origem interna planned, sem pergunta extra ao usuário.
+- Edição usa o mesmo formulário, preenchendo valores e permitindo limpar quantidade. Sucesso só fecha após commit; falha mantém texto e ID da criação. Cancelar descarta rascunho; campos, Cancelar e Voltar ficam bloqueados durante gravação. Campos rolam e ações ficam acima do teclado. Lista finalizada/ausente detectada ao salvar bloqueia novas escritas nessa tela.
+- Remoção/ocultação e garantia de ordem visual serão tratadas separadamente em F2-04/05. Q-001 a Q-007 seguem abertas; nenhum prazo de Desfazer ou regra de preço foi escolhido.

@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../domain/models/shopping_list.dart';
+import '../../domain/shopping_repository.dart';
 import '../list_budget_input.dart';
 import '../view_models/shopping_lists_view_model.dart';
+import '../view_models/shopping_items_view_model.dart';
 import '../widgets/create_list_sheet.dart';
 import 'scaffold_screen.dart';
+import 'shopping_screen.dart';
 
 class ShoppingListsScreen extends StatelessWidget {
   const ShoppingListsScreen({super.key});
@@ -141,6 +144,19 @@ class ShoppingListsScreen extends StatelessWidget {
                           alwaysUse24HourFormat: true,
                         );
                         return ListTile(
+                          onTap: viewModel.canEditLists
+                              ? () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => ChangeNotifierProvider(
+                                      create: (_) => ShoppingItemsViewModel(
+                                        context.read<ShoppingRepository>(),
+                                        list,
+                                      )..load(),
+                                      child: const ShoppingScreen(),
+                                    ),
+                                  ),
+                                )
+                              : null,
                           title: Text(list.name),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

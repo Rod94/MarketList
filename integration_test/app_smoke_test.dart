@@ -44,6 +44,88 @@ void main() {
     expect(find.text('Minhas listas'), findsOneWidget);
   }
 
+  testWidgets('F2-03 Android: inclui e edita produto com quantidade opcional', (
+    tester,
+  ) async {
+    await repository.createList(id: 'products', name: 'Produtos Android');
+    await openApp(tester);
+    await tester.tap(find.text('Produtos Android'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-item')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('item-name')), 'Carne');
+    final save = find.byKey(const ValueKey('save-item'));
+    final context = tester.element(save);
+    expect(
+      tester.getBottomRight(save).dy,
+      lessThanOrEqualTo(
+        MediaQuery.sizeOf(context).height -
+            MediaQuery.viewInsetsOf(context).bottom,
+      ),
+    );
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(
+      (await repository.listItems('products')).single.plannedQuantity,
+      isNull,
+    );
+    await tester.tap(find.text('Carne'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('item-quantity')), '5');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect((await repository.listItems('products')).single.plannedQuantity, 5);
+    await tester.tap(find.text('Carne'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('item-name')),
+      'Carne bovina',
+    );
+    await tester.enterText(find.byKey(const ValueKey('item-quantity')), '');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(
+      (await repository.listItems('products')).single.plannedQuantity,
+      isNull,
+    );
+    expect(find.text('Carne bovina'), findsOneWidget);
+    await tester.tap(find.byTooltip('Voltar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Produtos Android'));
+    await tester.pumpAndSettle();
+    expect(find.text('Carne bovina'), findsOneWidget);
+  });
+
+  testWidgets('F2-03 Android: erro SQL de item mantém formulário e retry', (
+    tester,
+  ) async {
+    await repository.createList(id: 'products', name: 'Produtos Android');
+    await db.execute('''CREATE TRIGGER fail_item BEFORE INSERT ON shopping_items
+      BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END''');
+    await openApp(tester);
+    await tester.tap(find.text('Produtos Android'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-item')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('item-name')), 'Sabonete');
+    await tester.enterText(find.byKey(const ValueKey('item-quantity')), '5');
+    await tester.tap(find.byKey(const ValueKey('save-item')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Seus campos foram mantidos'), findsOneWidget);
+    expect(await repository.listItems('products'), isEmpty);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('item-quantity')))
+          .controller!
+          .text,
+      '5',
+    );
+    await db.execute('DROP TRIGGER fail_item');
+    await tester.tap(find.byKey(const ValueKey('save-item')));
+    await tester.pumpAndSettle();
+    expect((await repository.listItems('products')).single.plannedQuantity, 5);
+  });
+
   testWidgets('F0-06: abre aplicativo e seleciona AMOLED no dispositivo', (
     tester,
   ) async {

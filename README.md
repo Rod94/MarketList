@@ -6,6 +6,8 @@ Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e 
 
 **F2-01/02 concluídas em 10/11/2026:** modelo de item e persistência SQLite v2 com inclusão/edição/remoção marcada. Quantidade ausente continua null; gravações em finalizadas são recusadas. Migração preserva as listas v1, sem reset. Regressão atual: **160 testes aprovados**, análise sem problemas e **13 testes nativos aprovados**. Ainda não há cadastro de produtos na interface. Consulte o [relatório da Fase 2](docs/PHASE_2_REPORT.md).
 
+**F2-03:** toque em uma lista para abrir seus produtos. Adicionar produto aceita nome obrigatório e quantidade opcional; tocar no produto permite editar/limpar quantidade. Gravação confirmada atualiza a tela, falha mantém os campos. Regressão: **176 testes aprovados**. Ordem/remoção visual são as próximas tarefas; preços/totais continuam para F3. Os relatos F2-01/02 acima descrevem a etapa anterior.
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.

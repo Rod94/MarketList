@@ -1,6 +1,6 @@
 # TESTING.md — Estratégia e casos de teste do aplicativo de supermercado
 
-**Versão:** 0.8 — Fases 0/1 e F2-01/02 testadas
+**Versão:** 0.9 — Fases 0/1 e F2-01/02/03 testadas
 
 **Data:** 10/11/2026 (catálogo original: 07/11/2026)
 **Referências:** `SPEC.md`, `DESIGN.md`, `ARCHITECTURE.md`, `TASKS.md`
@@ -409,3 +409,16 @@ Total nativo desta entrega: **13 casos distintos aprovados** (10 banco + 3 inter
 10. `dart format --output=none --set-exit-if-changed .`: saída 0, **33 arquivos sem alterações**.
 
 Integração usa subpasta temporária exclusiva sob getDatabasesPath, com resolução/validação de raiz antes da limpeza. Não abre nem apaga o banco normal; `--no-uninstall` mantém a instalação e seus dados. Mudança de status para finalizada é fixture, não implementação da F5. Testes de interrupção de rede em aparelho normal/iOS não foram repetidos nesta tarefa. Não há preço, total de compra, formulário de item ou política de Desfazer implementados.
+
+## 20. F2-03 — formulário de planejamento, 10/11/2026
+
+- Novos testes: shopping_items_view_model_test.dart (9) e shopping_screen_test.dart (7): **16 aprovados**. Nome/quantidade, null, edição, erro/retry com mesmo ID, confirmação aguardada, bloqueio de salvar/cancelar/voltar, carga falha sem falso vazio, dispose e teclado simulado em 320×568/fonte 2×.
+- Primeira análise encontrou 5 avisos de chaves em if; corrigidos antes dos testes. Análise seguinte: **No issues found**, saída 0. Não houve teste RED de domínio nesta tarefa; regras de modelo já estavam cobertas, os testes novos foram escritos junto à UI/coordenação.
+- `dart format .`: **39 arquivos**, 1 ajustado na integração; a execução anterior lib/test formatou os arquivos novos.
+- `flutter test test/unit/shopping_items_view_model_test.dart test/widget/shopping_screen_test.dart --reporter expanded`: **16 aprovados**.
+- `flutter test --reporter expanded`: **176 aprovados/0 falhas**, log build/f2-03-regression.log.
+- Integração app_smoke_test recebeu dois novos casos com SQLite isolado: criação/edição/null/retorno à rota e falha SQL real preservando campos/retry. Resultado nativo e build registrados no relatório da fase.
+
+UX-001 está coberto na fatia de planejamento (nome/quantidade juntos); campo de preço só F3. Sem migração ou alteração das regras de dinheiro, sem alegar UX de compra completa.
+
+Resultado F2-03 no Samsung: `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` → **5 aprovados**, saída 0. `flutter build apk --debug` → aprovado em 12,7 s; APK normal F2-03 instalado (**Success**) e aberto (**Status: ok**), preservando dados. Sem build iOS/release ou repetição de modo avião. Logs/artefatos ignorados pelo Git.

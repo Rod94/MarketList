@@ -416,3 +416,9 @@ Quantidade é `int?`: ausente permanece null; presente deve ser positiva. Origem
 O contrato existente `ShoppingRepository` ganhou operações de item; `SqliteShoppingRepository` concentra implementação/mapeamento, sem camada genérica nova. Inclusão usa ID estável e posição MAX+1 transacional. Edição altera somente nome/quantidade, preservando vínculo/origem/posição. Remoção marca data UTC e não apaga o item. Cada escrita verifica lista ativa na mesma transação; ausência/estado finalizado geram erro, e o retorno só ocorre depois do commit.
 
 Fluxo nesta entrega: chamador/teste → repositório → domínio valida → transação verifica lista e grava item → modelo/resultado confirmado. Leitura é uma coleção imutável de registros, **incluindo removidos**, sem implementar filtros/visibilidade da compra. A UI continua sendo a de listas; ligação/formulário será F2-03, comportamento visual de posição F2-04 e ocultação de removidos F2-05. CT-021 cobre agora preservação de identidade ao renomear; preservação de entradas depende da F3.
+
+## 21. Tela de planejamento — F2-03, 10/11/2026
+
+ShoppingListsScreen abre ShoppingScreen via Navigator. Cada rota possui ShoppingItemsViewModel/ChangeNotifier, que carrega registros confirmados e controla rascunho/erros/ID estável. ItemFormSheet possui somente TextEditingControllers/layout; item_quantity_input.dart faz parsing puro. O repositório e o banco v2 não mudaram.
+
+Fluxo: toque na lista → Provider cria ViewModel → carga SQLite → tela; Adicionar/toque no produto → formulário → ViewModel valida → repositório confirma → cache imutável → fechamento/sucesso. Falha mantém os campos, sem confirmação antecipada. A ordenação explícita/projeção de removidos serão acrescentadas nas tarefas seguintes. O fake de testes agora fornece operações de itens controláveis; produção continua usando SQLite real.

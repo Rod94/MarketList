@@ -123,3 +123,21 @@ Hoje não há controle novo no Android para cadastrar produtos. A validação de
 Exercício opcional em branch de treino: acrescente um cenário criando um produto com quantidade 12, edite para null e feche/reabra o banco temporário. Confira que null permanece, sem alterar dados normais nem resultados esperados dos testes existentes.
 
 **Próxima tarefa pequena sugerida:** F2-03 — ligação da UI e formulário de item. Não iniciada nesta entrega; nome continua obrigatório conforme SPEC/D-002.
+
+## F2-03 — Formulário de planejamento
+
+**Data:** 10/11/2026. Usuário autorizou concluir F2 por tarefas sequenciais com commit/envio individual. F2-03 implementada sem antecipar F3.
+
+Benefício: já é possível preparar produtos pela interface, apenas com nome ou com quantidade planejada. O nome é obrigatório, como em SPEC/D-002; TASKS teve apenas o rótulo ambíguo corrigido. Marca/foto/categoria não existem no formulário. Preço e subtotal serão introduzidos na F3; a parte de três campos de UX-001 não é declarada concluída agora.
+
+Arquivos: novos item_quantity_input.dart (parser puro), shopping_items_view_model.dart (carga/rascunho/validação/retry), shopping_screen.dart (lista/rotas) e item_form_sheet.dart (campos/controladores/teclado), todos na apresentação da feature. shopping_lists_screen.dart liga a navegação. O fake passou a fornecer itens controláveis nos testes; dois arquivos novos cobrem ViewModel/parser (9 casos) e widgets (7 casos). app_smoke_test.dart acrescenta 2 cenários com SQLite real. README/TASKS/TESTING/ARCHITECTURE/DECISIONS/este relatório refletem a tarefa. Banco/migrações/contrato do repositório permaneceram intactos.
+
+Caminho: **toque na lista → ViewModel por rota carrega SQLite → formulário → rascunho validado → repositório → commit → cache confirmado → tela/sucesso**. Erro não fecha nem apaga os campos; ID da criação permanece para retry. Durante gravação, botões/campos/Voltar não podem iniciar outra operação. Editar usa a identidade existente e pode substituir 5 por null.
+
+Conceitos: Navigator empilha a tela; ChangeNotifierProvider cria/descarta seu estado; Provider.value compartilha a mesma instância com o modal, sem descartá-la ao fechar. TextEditingController é criado em initState e liberado em dispose. Future/await funciona como Task/await em C#: a tela só informa sucesso após o retorno confirmado. `int?` e parsing diferenciam ausência de uma unidade. `Flexible`/rolagem e viewInsets mantêm ações acima do teclado.
+
+Verificação: primeira análise apontou 5 avisos de if sem chaves, corrigidos; análise seguinte sem problemas. Novos testes **16 aprovados**, regressão completa **176/0 falhas**. 39 arquivos Dart formatados. Não houve RED de domínio; testes de UI/coordenação foram acrescentados junto à implementação e as regras puras existentes continuam cobertas. Resultados nativos e artefato normal são registrados abaixo após execução.
+
+Android: abrir uma lista → Adicionar produto → preencher nome, deixar quantidade vazia ou informar inteiro positivo → Salvar produto. Toque no produto para renomear/retirar quantidade. Cancelar não grava. Remoção e garantia explícita de ordenação serão as próximas tarefas. Exercício opcional numa branch de treino: criar teste de um produto com quantidade 12 e depois limpar o campo, esperando null sem duplicar a linha.
+
+Execução nativa: `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` passou com **5 testes**, saída 0, incluindo os 2 novos de itens (log build/f2-03-android-ui.log). `flutter build apk --debug` passou em **12,7 s**. APK normal copiado como marketlist-f2-03-debug.apk, instalado com install -r (**Success**) e aberto (**Status: ok**). Nenhum teste desinstalou o pacote ou usou o banco normal. Não houve nova migração, teste de modo avião ou build iOS/release nessa tarefa.
