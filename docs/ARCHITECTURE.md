@@ -402,3 +402,9 @@ Repositório recebeu 26 testes FFI e três cenários adicionais no teste nativo 
 Fluxo de criação: campo → rascunho no ViewModel → validação/centavos → repositório com ID estável → transação SQLite → modelo confirmado → coleção imutável → atualização da tela e fechamento do painel. Erro mantém painel, textos e identidade. Exclusão: diálogo com nome → ViewModel → remoção transacional ativa → atualização visual somente após confirmação. Model/repositório compartilham o comparador temporal já adotado.
 
 O app normal agora usa `market_list.db`. Por isso, a integração injeta outro repositório em banco temporário próprio, sem fallback em produção. A F1-05 foi verificada no app normal pelo host, com modo avião, Wi-Fi desligado, nenhuma rede padrão, novo processo e recuperação real dos dados. O roteiro ADB remove apenas sua lista e restaura as configurações capturadas. Ele não é parte do runtime Flutter. A migração v1 não mudou; futuras tabelas ainda requerem migração/testes próprios.
+
+## 19. Modelo de item — F2-01, 10/11/2026
+
+`features/shopping/domain/models/shopping_item.dart` representa `ShoppingItem` e `ShoppingItemOrigin` em Dart puro, sem imports Flutter/SQLite. Os campos são os da seção 5: identidade, vínculo, nome, quantidade opcional, origem, posição e remoção opcional. Campos final e tipos imutáveis preservam a instância; validações do construtor usam erros em execução, não asserts.
+
+Quantidade é `int?`: ausente permanece null; presente deve ser positiva. Origem e posição são fornecidas explicitamente pelo chamador. A posição usa índice não negativo, começando em zero; gerar/manter a ordem e executar remoção lógica continuam para F2-02/04/05. `removedAt` apenas representa o instante em UTC, sem implementar exclusão/desfazer. Não há estados de compra, entradas ou cálculos antecipados. O contrato do repositório e o esquema v1 permanecem intactos; o novo modelo ainda não integra o fluxo do app.

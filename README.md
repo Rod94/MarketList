@@ -4,6 +4,8 @@ Repositório: [Rod94/MarketList](https://github.com/Rod94/MarketList). Branch pr
 
 Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e base nativa iOS preparada. **Fases 0 e 1 concluídas:** temas Claro/AMOLED, tela Minhas listas, criação com nome/orçamento opcional, exclusão confirmada e persistência SQLite, inclusive após reiniciar sem rede. Produtos, preços, compra, finalização e histórico pertencem às próximas fases.
 
+**F2-01 concluída em 10/11/2026:** modelo de item Dart puro, com quantidade planejada opcional (`null` não vira 1), validado por 24 testes novos. Regressão atual: **129 testes aprovados**, análise sem problemas. Ainda não há tela nem persistência de produtos; o APK da Fase 1 continua sendo a última entrega visual. Consulte o [relatório da Fase 2](docs/PHASE_2_REPORT.md).
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.
@@ -85,6 +87,7 @@ lib/
     create_list_sheet.dart      # Formulário e ações acima do teclado
   features/shopping/domain/models/
     shopping_list.dart          # Modelo imutável, com validação e datas UTC
+    shopping_item.dart          # Modelo puro; quantidade planejada opcional
   features/shopping/domain/
     shopping_repository.dart    # Contrato Dart puro e erros de operação
   features/shopping/data/
@@ -104,7 +107,7 @@ Não há diretórios vazios antecipando banco, dinheiro, checkout ou histórico.
 
 ## Documentação e escopo
 
-Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. A Fase 1 está concluída. Próxima tarefa sugerida: F2-01, após autorização para iniciar a Fase 2. Regras aprovadas permanecem preservadas.
+Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Fases 0/1 e F2-01 estão concluídas. Próxima tarefa sugerida: F2-02. Cada tarefa concluída a partir da F2-01 deve ter commit e envio ao GitHub, conforme orientação do usuário. Regras aprovadas permanecem preservadas.
 
 `AGENTS.md` contém instruções locais, está no `.gitignore` por escolha do usuário e não é enviado ao GitHub. A documentação em `docs/` é versionada.
 

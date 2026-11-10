@@ -1,8 +1,8 @@
 # TESTING.md — Estratégia e casos de teste do aplicativo de supermercado
 
-**Versão:** 0.6 — Fases 0/1 testadas; demais funcionalidades planejadas
+**Versão:** 0.7 — Fases 0/1 e domínio F2-01 testados
 
-**Data:** 09/11/2026 (catálogo original: 07/11/2026)  
+**Data:** 10/11/2026 (catálogo original: 07/11/2026)
 **Referências:** `SPEC.md`, `DESIGN.md`, `ARCHITECTURE.md`, `TASKS.md`
 
 > **Definição de pronto:** funcionalidade implementada + requisitos/critério de aceite atendidos + testes aplicáveis executados e aprovados + regressão sem falhas relevantes + documentação atualizada. Testes não executados nunca devem ser relatados como aprovados.
@@ -364,3 +364,21 @@ Evidência local em `build/offline_verification/result.json`, `form_keyboard.png
 **Saída da Fase 1:** modelo/banco/repositório/UI/reinício aprovados; erros não produzem sucesso nem apagam inputs, exclusão exige confirmação e app funciona offline no escopo implementado. Não há novo esquema nem limpeza de banco para reparar migração. Limites reais: runner intermitente, preferências de tema não persistidas, sem auditoria completa TalkBack/OLED ou build iOS/release. Produtos, preços, finalização e histórico ainda não implementados.
 
 Verificação final: `dart format --output=none --set-exit-if-changed .` retornou **0, 28 arquivos sem alterações**; `python -m py_compile tool/verify_android_offline.py` retornou 0. O fetch confirmou que origin/main e HEAD estavam alinhados antes do novo commit. Capturas, JSON, APK e AGENTS.md permaneceram ignorados.
+
+## 18. Execução F2-01 — modelo puro de item, 10/11/2026
+
+Requisitos: RF-02/D-002 e campos da seção 5 de ARCHITECTURE. CT-006/UX-002 são cobertos **apenas no domínio**: null não vira 1; ainda não há CRUD, formulário ou persistência de itens. Origem/posição/remoção são representação, sem marcar F2-04/05 como prontas.
+
+`test/unit/shopping_item_test.dart`: **24 testes novos**, cobrindo quantidade ausente/explícita/uma/cinco unidades, rejeição de zero/negativos, identidade/vínculo/nome vazios, trim/nome livre, nomes iguais, origens, posição e data de remoção UTC preservando os dados.
+
+Comandos efetivamente executados, SDK Flutter 3.47.9/Dart 3.13.7 instalado:
+
+- Primeira tentativa restrita de `flutter test test/unit/shopping_item_test.dart` não produziu saída e foi interrompida; não contou como execução aprovada. Repetida com acesso ao SDK fora da workspace.
+- **RED:** `flutter test test/unit/shopping_item_test.dart` saiu 1 por arquivo/tipos ainda ausentes. Nenhuma asserção executada nessa etapa.
+- `dart format lib/features/shopping/domain/models/shopping_item.dart test/unit/shopping_item_test.dart`: 2 arquivos, 1 formatado.
+- **GREEN:** `flutter test test/unit/shopping_item_test.dart`: saída 0, **24 aprovados**.
+- `dart format --output=none --set-exit-if-changed .`: saída 0, **30 arquivos, nenhum alterado**.
+- `flutter analyze`: saída 0, **No issues found!**, 13,9 s.
+- `flutter test --reporter expanded`: saída 0, **129 aprovados/0 falhas** (105 anteriores + 24 novos).
+
+Não houve falha de asserção nem mudança de expectativa para acomodar implementação. Integração Android, novo build/APK, teste offline físico e iOS **não executados nesta tarefa**: somente domínio ainda não ligado ao app foi acrescentado, sem alteração de UI, banco ou código nativo. Os resultados nativos da Fase 1 são históricos, não execuções desta entrega. O APK anterior continua sendo o último visualmente utilizável.

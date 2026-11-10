@@ -153,3 +153,14 @@ As três operações disponíveis recusam alterações em listas finalizadas con
 - Interrupção do runner permanece sem causa comprovada. O diagnóstico `--no-dds` produziu erro de stream do comparador golden do SDK e foi descartado; a suíte passou com DDS normal e expectativas intactas. Não se atualizou nem alterou o SDK para mascarar o problema.
 
 Nenhuma regra de compra/preço foi alterada; Q-001 a Q-007 seguem abertas para suas fases. Evidência de encerramento da Fase 1 em `PHASE_1_REPORT.md` e seções 16/17 de `TESTING.md`.
+
+## 11. Registro técnico F2-01 — 10/11/2026
+
+- `ShoppingItem` segue os campos documentados da arquitetura, com classe final/campos final e validação no construtor, sem Flutter, SQL, serialização, copyWith genérico ou biblioteca nova.
+- Quantidade planejada é `int?`, conforme a didática de TASKS e o esquema conceitual INTEGER positivo. Ausência fica null, sem default 1; zero/negativo são rejeitados. Isso concretiza RF-02/D-002 e os casos de borda de TESTING, sem adicionar quantidades fracionárias ou limite arbitrário.
+- IDs opacos e vínculo são fornecidos pelo chamador, não vazios, preservados exatamente. Nome passa por trim externo, mantendo texto interno/apresentação; nomes iguais não são proibidos. Verificar existência da lista e gravabilidade é responsabilidade futura do repositório, não do construtor puro.
+- Origem (`planned`/`atStore`) é explícita, sem heurística ou pergunta obrigatória ao usuário. `sortOrder` é explícito, índice não negativo iniciado em zero: convenção técnica para representar posição, não implementação da ordenação F2-04. A alternativa seria índice iniciado em um; zero acompanha índices Dart e evita reservar posição sem necessidade. Atribuição/estabilidade transacional ainda precisam de testes na persistência.
+- `removedAt?` é somente representação prevista na arquitetura, normalizada em UTC e sem apagar os demais campos. Não há método de remover/desfazer nem política nova para Q-004; não se presume estado comprado/pendente a partir do modelo.
+- Esquema/versão v1 e dados existentes não mudaram. A futura tabela de itens exigirá migração incremental e testes de preservação na F2-02. Q-001 a Q-007 continuam abertas.
+
+Execução e aprendizado: `PHASE_2_REPORT.md` e seção 18 de `TESTING.md`. Orientação do usuário registrada em TASKS: um commit/envio ao GitHub por tarefa concluída a partir desta.

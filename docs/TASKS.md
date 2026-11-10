@@ -1,11 +1,13 @@
 # TASKS.md — Plano incremental de desenvolvimento
 
-**Versão:** 0.6 — Fases 0 e 1 concluídas; Fase 2 não iniciada
+**Versão:** 0.7 — Fases 0 e 1 concluídas; F2-01 concluída
 
-**Data:** 09/11/2026 (plano original: 07/11/2026)  
+**Data:** 10/11/2026 (plano original: 07/11/2026)
 **Fontes de verdade:** `SPEC.md` (regras), `DESIGN.md` (interação), `ARCHITECTURE.md` (estrutura), `TESTING.md` (casos), `DECISIONS.md` (decisões).
 
 > **Modo de trabalho:** tarefas pequenas, testáveis e com explicação didática. Implementar apenas uma tarefa ou pequena fatia vertical por vez no Codex. Não marcar como concluída sem testes reais e sem explicar o que foi feito.
+
+**Versionamento autorizado pelo usuário:** a partir da F2-01, concluir e validar cada tarefa pequena, criar seu commit e enviar ao GitHub. Informar hash e resultados reais; não marcar envio como feito se falhar.
 
 ## 0. Portões de qualidade aplicáveis a todas as tarefas
 
@@ -59,13 +61,15 @@
 
 **Objetivo:** montar a lista em casa com mínimo de fricção.
 
-| Tarefa | Entrega | Critério de conclusão |
-| --- | --- | --- |
-| F2-01 | Modelo de item e campo `plannedQuantity?` | Testar que `null` ≠ 1 |
-| F2-02 | Adicionar/editar/remover item com persistência | CT-004 a CT-006, CT-021 conforme aplicável |
-| F2-03 | Formulário compacto com nome e quantidade opcionais | UX-001/UX-002; sem exigir marca, foto nem categoria |
-| F2-04 | Ordenação estável por `sortOrder` | Item não muda de posição após edição |
-| F2-05 | Remoção lógica com redução do conjunto visível | CT-005, CT-050; política de `Desfazer` só depois de decisão |
+| Tarefa | Entrega | Critério de conclusão | Status real — 10/11/2026 |
+| --- | --- | --- | --- |
+| F2-01 | Modelo de item e campo `plannedQuantity?` | Testar que `null` ≠ 1 | **Feito:** modelo Dart puro imutável; 24 testes novos aprovados, regressão com 129 aprovados, analyze sem problemas |
+| F2-02 | Adicionar/editar/remover item com persistência | CT-004 a CT-006, CT-021 conforme aplicável | Pendente |
+| F2-03 | Formulário compacto com nome e quantidade opcionais | UX-001/UX-002; sem exigir marca, foto nem categoria | Pendente |
+| F2-04 | Ordenação estável por `sortOrder` | Item não muda de posição após edição | Pendente |
+| F2-05 | Remoção lógica com redução do conjunto visível | CT-005, CT-050; política de `Desfazer` só depois de decisão | Pendente |
+
+**Escopo F2-01:** representação dos campos documentados, incluindo origem, posição e data de remoção; nenhum fluxo de ordenação/remoção, CRUD, migração ou tela de produto foi antecipado. CT-006/UX-002 têm cobertura apenas da semântica do modelo. Evidências e explicação: `PHASE_2_REPORT.md`.
 
 **Explicações didáticas:** valor opcional (`int?`), formulário, validação, diferença entre estado visual e domínio.
 
@@ -156,6 +160,6 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 1 entregue.** Próxima tarefa pequena sugerida: **F2-01 — modelo de item e quantidade planejada opcional**, somente após autorização para iniciar a Fase 2. A advertência antiga de cmdline-tools/licenças do doctor não foi reavaliada nesta entrega. Produtos, preços, compra, finalização e histórico ainda não estão implementados.
+**F2-01 entregue.** Próxima tarefa pequena sugerida: **F2-02 — adicionar/editar/remover item com persistência**, sem implementação nesta entrega. A advertência antiga de cmdline-tools/licenças do doctor não foi reavaliada. Ainda não há cadastro de produtos no aplicativo, preços, compra, finalização ou histórico.
 
-**Estado atual:** Fases 0/1 **feitas**, com limites documentados; Fase 2 em diante **pendentes e não iniciadas**. O primeiro commit registrou F0/F1-01; seu título solicitado anteriormente não descrevia a Fase 1 inteira. Esta entrega reúne o restante da Fase 1 para commit/envio autorizado pelo usuário. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos antigos de ausência de `.git` são históricos.
+**Estado atual:** Fases 0/1 e F2-01 **feitas**, com limites documentados; F2-02 em diante **pendentes**. O primeiro commit registrou F0/F1-01; seu título solicitado anteriormente não descrevia a Fase 1 inteira. O restante da Fase 1 foi publicado em `bf1ae32`. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos antigos de ausência de `.git` são históricos.
