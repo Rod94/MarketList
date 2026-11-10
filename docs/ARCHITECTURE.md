@@ -430,3 +430,5 @@ F2-05 liga a marca de remoção já persistida à projeção `visibleItems`, que
 ## 22. Dinheiro — F3-01, 10/11/2026
 
 core/money/money.dart contém funções puras de parsing/formatação e operações verificadas. Entrada não usa double; centavos/resultados persistíveis são int não negativo em int64. BigInt verifica somas/produtos e formatação negativa extrema antes da conversão, sem virar tipo de coluna. list_budget_input.dart delega ao núcleo, preservando formato e mensagem existentes. Sem classe/serviço genérico ou pacote novo. Preços/entradas serão conectados nas tarefas seguintes.
+
+F3-02 introduziu PurchaseEntry puro/imutável, com exclusividade dos modos e subtotalCents derivado/verificado na construção. Não aceita subtotal fornecido, estado visual, marca ou serialização no domínio. Repositório/banco/UI ainda não usam entradas.

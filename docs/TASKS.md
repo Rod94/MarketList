@@ -1,6 +1,6 @@
 # TASKS.md — Plano incremental de desenvolvimento
 
-**Versão:** 1.1 — Fases 0/1/2 concluídas; F3-01 concluída
+**Versão:** 1.2 — Fases 0/1/2 concluídas; F3-01/02 concluídas
 
 **Data:** 10/11/2026 (plano original: 07/11/2026)
 **Fontes de verdade:** `SPEC.md` (regras), `DESIGN.md` (interação), `ARCHITECTURE.md` (estrutura), `TESTING.md` (casos), `DECISIONS.md` (decisões).
@@ -86,7 +86,7 @@
 | Tarefa | Entrega | Critério de conclusão | Status real |
 | --- | --- | --- | --- |
 | F3-01 | Conversor de moeda `pt-BR` ↔ centavos e validações | Testes para `4,22`, centavos e formatos inválidos | **Feito:** 17 novos testes; regressão 206 aprovados; analyze sem problemas |
-| F3-02 | Modelo `PurchaseEntry` com quantidade × unidade OU valor direto | Testar exclusividade dos modos e subtotais | Pendente |
+| F3-02 | Modelo `PurchaseEntry` com quantidade × unidade OU valor direto | Testar exclusividade dos modos e subtotais | **Feito:** modelo puro imutável e subtotal verificado; 18 novos testes, regressão 224 aprovados |
 | F3-03 | Calculadora pura de item/lista e compra parcial | CT-008 a CT-010, CT-013 a CT-017, CT-020, CT-026 | Pendente |
 | F3-04 | SQLite para inserir/atualizar/excluir entradas | CT-022 a CT-027; transações e integridade | Pendente |
 | F3-05 | ViewModel atualiza total após sucesso de persistência | CT-033 a CT-035 e UX-008 | Pendente |
@@ -166,6 +166,6 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**F3-01 entregue.** Próxima tarefa pequena: **F3-02 — modelo de entrada de compra**, já autorizada. Sem UI de preços/compra/finalização/histórico nesta tarefa. Continuar fase por fase conforme autorização do usuário, mantendo tarefas pequenas e commit/envio individual.
+**F3-02 entregue.** Próxima tarefa pequena: **F3-03 — calculadora pura e estados de compra**, já autorizada. Sem UI de preços/compra/finalização/histórico nesta tarefa. Continuar fase por fase conforme autorização do usuário, mantendo tarefas pequenas e commit/envio individual.
 
-**Estado atual:** Fases 0/1/2 e F3-01 **feitas**; F3-02 em diante **pendentes e autorizadas sequencialmente**. APK normal mais recente ainda é o da Fase 2; F3-01 só acrescenta código puro e compartilha conversão com o orçamento. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos anteriores de F3 não autorizada são históricos.
+**Estado atual:** Fases 0/1/2 e F3-01/02 **feitas**; F3-03 em diante **pendentes e autorizadas sequencialmente**. APK normal mais recente ainda é o da Fase 2; entregas F3 até aqui são puras e compartilham conversão com orçamento. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos anteriores de F3 não autorizada são históricos.

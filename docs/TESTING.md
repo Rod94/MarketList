@@ -1,6 +1,6 @@
 # TESTING.md — Estratégia e casos de teste do aplicativo de supermercado
 
-**Versão:** 1.0 — Fases 0, 1 e 2 testadas no escopo implementado
+**Versão:** 1.2 — Fases 0/1/2 e F3-01/02 testadas no escopo implementado
 
 **Data:** 10/11/2026 (catálogo original: 07/11/2026)
 **Referências:** `SPEC.md`, `DESIGN.md`, `ARCHITECTURE.md`, `TASKS.md`
@@ -461,3 +461,7 @@ Decisões D-028/029/030 aprovadas pelo usuário antes da implementação. money_
 RED: `flutter test test/unit/money_test.dart --reporter expanded` saiu 1 por arquivo/métodos ausentes, sem asserções. `dart format` processou 3 arquivos, ajustou 2; `flutter analyze` passou sem problemas. Primeira regressão: **205 aprovados/1 falha** devido à mudança indevida de mensagem do orçamento; mensagem original restaurada sem alterar o teste. `flutter test --reporter expanded` seguinte: **206 aprovados/0 falhas**, saída 0, build/f3-01-regression-final.log.
 
 Orçamento delega ao conversor e todos os 10 testes anteriores/fluxos widget continuam. Não houve banco, UI nova, build APK ou teste Android nesta tarefa; resultados nativos F2 são históricos. Novos cenários aprovados de produto gratuito/quantidade não confirmada serão exercitados no modelo/calculadora/UI nas tarefas seguintes, sem alegar compra implementada pelo parser.
+
+## 24. F3-02 — entrada de compra, 10/11/2026
+
+purchase_entry_test.dart: **18 novos testes** de modos exclusivos, valores/quantidades, identidade/vínculo, zero gratuito e subtotal com overflow recusado. RED saiu 1 por implementação ausente, sem asserções. `dart format` processou/ajustou 2 arquivos. `flutter analyze`: sem problemas. `flutter test --reporter expanded`: **224 aprovados/0 falhas**, saída 0, build/f3-02-regression.log. Sem alteração de banco/UI, teste Android ou novo APK nesta tarefa pura.

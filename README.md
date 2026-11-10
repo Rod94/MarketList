@@ -8,6 +8,8 @@ Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e 
 
 **F3-01 concluída:** conversor puro de moeda, preço zero distinto de ausência e proteção de soma/produto contra overflow. **206 testes aprovados**, análise sem problemas. Orçamento compartilha o conversor sem mudar sua experiência. UI de preços ainda não implementada. Progresso em [PHASE_3_REPORT.md](docs/PHASE_3_REPORT.md).
 
+**F3-02 concluída:** modelo puro de entrada por unidades ou valor direto, subtotal validado e gratuito explícito. Regressão atual **224 aprovados**, análise sem problemas; sem nova UI/APK nesta tarefa. Próxima F3-03, calculadora.
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.

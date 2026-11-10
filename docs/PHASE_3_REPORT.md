@@ -15,3 +15,13 @@ Conceitos: int? é anulável como em C#; BigInt representa intermediários sem w
 TDD: RED saiu 1 por implementação inexistente. Análise passou. Primeira regressão teve 205 aprovados/1 falha por texto de erro do orçamento alterado ao compartilhar o parser; restaurado o texto original, sem mudar expectativa. Regressão seguinte: **206 aprovados**, saída 0. Os 17 novos incluem extremos, roundtrip e rejeição de overflow. Formatados 3 arquivos, 2 ajustados. Comandos completos e logs em TESTING seção 23.
 
 Android/limites: nenhuma tela nova para testar manualmente; APK F2 continua sendo a versão normal instalada. Não foram repetidos build/integracão Android/iOS/release nesta tarefa pura. Para verificar: `flutter test test/unit/money_test.dart`. Exercício opcional numa branch de treino: acrescentar roundtrip de 1.234 centavos, esperando 12,34 e o mesmo inteiro. Próxima tarefa: F3-02, já autorizada.
+
+## F3-02 — Modelo de entrada
+
+**Concluída em 10/11/2026.** PurchaseEntry representa exatamente uma compra por quantidade × preço unitário ou valor total sem quantidade. Preserva zero gratuito e não inventa unidades. Subtotal é derivado/verificado na construção, não um valor arbitrário recebido do chamador.
+
+Arquivos novos: domain/models/purchase_entry.dart e test/unit/purchase_entry_test.dart; README/TASKS/TESTING/ARCHITECTURE/DECISIONS/relatório atualizados. Campos final e tipos imutáveis preservam identidade/vínculo/dados; construtor verifica exclusividade em execução, sem assert. Sem métodos de banco ou widget. Fluxo: dados em centavos → construtor valida modo → cálculo puro verificado → instância ou erro.
+
+Conceitos: parâmetros nomeados opcionais representam os campos, mas não dispensam invariantes. Getter isDirect é derivado, sem flag redundante; subtotalCents é calculado uma vez antes de permitir usar o objeto. RangeError para overflow também é ArgumentError, útil para distinguir dado inválido. Não se armazena subtotal duplicado no banco futuro: a instância calcula a partir dos campos.
+
+RED saiu 1 por arquivo/tipo inexistente. GREEN/regressão: **224 aprovados**, incluindo **18 novos**; análise sem problemas. Formatados 2 arquivos. Sem migração/UI/build/integracão Android nesta tarefa. Para validar: `flutter test test/unit/purchase_entry_test.dart`. Exercício opcional numa branch de treino: conferir 2 unidades a 350 centavos com subtotal 700. Próxima tarefa: calculadora F3-03, autorizada. Nenhuma regra aprovada foi alterada.
