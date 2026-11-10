@@ -1,6 +1,6 @@
 # TESTING.md — Estratégia e casos de teste do aplicativo de supermercado
 
-**Versão:** 0.9 — Fases 0/1 e F2-01/02/03 testadas
+**Versão:** 1.0 — Fases 0, 1 e 2 testadas no escopo implementado
 
 **Data:** 10/11/2026 (catálogo original: 07/11/2026)
 **Referências:** `SPEC.md`, `DESIGN.md`, `ARCHITECTURE.md`, `TASKS.md`
@@ -430,3 +430,26 @@ RED: `flutter test test/unit/shopping_item_test.dart --reporter expanded` saiu 1
 Novos casos: 2 de comparador (posição antes de nome/quantidade e desempate), 1 de ViewModel com carga fora de ordem/edição, 1 widget verificando posição vertical após renomear/recarregar e 1 SQLite com edição/reabertura/posição seguinte. `dart format .`: 39 arquivos, 4 formatados nos testes. Integração acrescentou um cenário visual equivalente com SQLite real; resultado no relatório da fase. Sem alterações no esquema, entrada de compra ou cálculo. UX-011 após **comprar** depende de F3; aqui se comprova estabilidade durante planejamento/edição.
 
 F2-04 Android: `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` → **6 aprovados**, saída 0, log build/f2-04-android-ui.log. `flutter build apk --debug` → aprovado em 11,2 s; APK normal F2-04 instalado/aberto com Success/Status: ok.
+
+## 22. F2-05 — remoção e fechamento da fase, 10/11/2026
+
+RED: teste de ViewModel saiu 1 porque removeEditingItem/visibleItems/isRemoving ainda não existiam, sem executar asserções. GREEN: **26 testes** dos arquivos de estado/widget de produtos aprovados, incluindo **8 novos** (5 de estado + 3 widgets). Casos novos: projeção preserva ordem, confirmação aguardada/sem repetição, falha mantém campos, ausente não declara sucesso, finalizada bloqueia, ocultação na recarga e remoção explícita na UI.
+
+`dart format .`: 39 arquivos, 5 ajustados na primeira execução; integração formatada na seguinte. `flutter analyze`: **No issues found!**, saída 0. `flutter test --reporter expanded`: **189 aprovados/0 falhas**, saída 0, build/f2-final-regression.log. `python -m py_compile tool/verify_android_offline.py`: aprovado. Nenhuma expectativa foi alterada para esconder bug.
+
+Integração recebeu um cenário com erro SQL de remoção, rascunho mantido, retry, registro preservado e ocultação ao reabrir. Roteiro host estendido com --items para checar os produtos em novo processo offline. CT-050 de subtotal comprado, UX-001 completo com preço, UX-011 após compra e filtros/total continuam dependentes das fases seguintes.
+
+Execução final real:
+
+| Comando | Resultado |
+| --- | --- |
+| `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` | **7 aprovados**, saída 0, build/f2-final-android-ui.log |
+| `flutter test integration_test/database_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` | **10 aprovados**, saída 0, build/f2-final-android-db.log |
+| `flutter build apk --debug` | Aprovado em **12,9 s**, APK normal Fase 2 instalado com install -r (Success) e aberto (Status: ok / COLD) |
+| `python tool/verify_android_offline.py --adb C:\Users\Rodolpho\AppData\Local\Android\Sdk\platform-tools\adb.exe --serial RXCY300NZZH --inspect` | Aprovado; app normal visível, antes do roteiro offline |
+| Mesmo roteiro com `--run --items` | **1 E2E aprovado**, saída 0; sem rede padrão, lista/produtos/quantidades/ordem/remoção recuperados após novo PID |
+| `dart format --output=none --set-exit-if-changed .` | Saída 0, **39 arquivos sem alterações** |
+
+JSON real: lista própria `TesteOfflineF2_11924b48`, PID **17532→19921**, offline_confirmed/items_persisted/removed_item_hidden/order_preserved/persisted_after_restart/cleanup_ok/network_settings_restored/screen_setting_restored **true**. Modo avião **0→1→0**, Wi-Fi **1→0→1**, stay-on restaurado **0**; nova inspeção confirmou rede padrão **251**. Só a lista própria foi excluída; nenhuma tabela/banco foi apagada/resetada. Evidências em build/offline_verification_f2, separadas da evidência F1.
+
+Capturas de teclado e após reinício foram inspecionadas: ações acessíveis acima do IME real, nomes/quantidades legíveis em AMOLED e removido ausente. Não é auditoria completa de contraste/TalkBack. Resultado final: **189 convencionais + 17 nativos + 1 E2E offline aprovados**. Sem build iOS/release, preços/compra/finalização/histórico. Interrupções antigas do runner permanecem documentadas como históricas; execuções finais desta entrega passaram sem relaxar expectativas.

@@ -14,6 +14,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   List<ShoppingItem> _items = const [];
   bool _loading = false;
   bool _saving = false;
+  bool _removing = false;
   bool _hasLoaded = false;
   bool _disposed = false;
   bool _readOnly;
@@ -27,8 +28,11 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   String? _quantityError;
 
   List<ShoppingItem> get items => _items;
+  List<ShoppingItem> get visibleItems =>
+      List.unmodifiable(_items.where((item) => item.removedAt == null));
   bool get isLoading => _loading;
   bool get isSaving => _saving;
+  bool get isRemoving => _removing;
   bool get isBusy => _loading || _saving;
   bool get hasLoaded => _hasLoaded;
   bool get readOnly => _readOnly;
@@ -170,6 +174,47 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       return false;
     } finally {
       _saving = false;
+      _notify();
+    }
+  }
+
+  Future<bool> removeEditingItem() async {
+    final editing = _editingItem;
+    if (!canEdit || editing == null) return false;
+    _saving = true;
+    _removing = true;
+    _saveError = null;
+    _notify();
+    try {
+      final removed = await _repository.removeItem(
+        id: editing.id,
+        shoppingListId: shoppingList.id,
+      );
+      if (_disposed) return false;
+      // O contrato confirma remoção/ausência, mas não retorna o instante gravado.
+      // Retire só este ID do cache; não invente uma data local de persistência.
+      _items = List.unmodifiable(_items.where((item) => item.id != editing.id));
+      if (!removed) {
+        _saveError = 'Este produto já não está disponível. Cancele e atualize os produtos.';
+        return false;
+      }
+      _resetDraft();
+      return true;
+    } on FinalizedShoppingListException {
+      _readOnly = true;
+      _saveError = 'Esta lista foi finalizada e não permite remover produtos.';
+      return false;
+    } on ShoppingListNotFoundException {
+      _readOnly = true;
+      _saveError =
+          'Esta lista não está mais disponível. Seus campos foram mantidos.';
+      return false;
+    } catch (_) {
+      _saveError = 'Não foi possível remover o produto. Seus campos foram mantidos. Tente novamente.';
+      return false;
+    } finally {
+      _saving = false;
+      _removing = false;
       _notify();
     }
   }

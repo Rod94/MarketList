@@ -46,6 +46,67 @@ void main() {
   }
 
   testWidgets(
+    'F2-05 Android: remoção falha sem perder campos, retry oculta e preserva registro',
+    (tester) async {
+      await repository.createList(id: 'remove', name: 'Remocao Android');
+      for (final name in ['Carne', 'Leite', 'Removido']) {
+        await repository.createItem(
+          id: name,
+          shoppingListId: 'remove',
+          name: name,
+          plannedQuantity: 5,
+          origin: ShoppingItemOrigin.planned,
+        );
+      }
+      await repository.removeItem(id: 'Removido', shoppingListId: 'remove');
+      await openApp(tester);
+      await tester.tap(find.text('Remocao Android'));
+      await tester.pumpAndSettle();
+      expect(find.text('Removido'), findsNothing);
+      await tester.tap(find.text('Leite'));
+      await tester.pumpAndSettle();
+      await db.execute(
+        '''CREATE TRIGGER fail_remove BEFORE UPDATE ON shopping_items
+      BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END''',
+      );
+      await tester.tap(find.byKey(const ValueKey('remove-item')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Não foi possível remover'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('item-quantity')))
+            .controller!
+            .text,
+        '5',
+      );
+      expect(
+        (await repository.listItems('remove'))
+            .firstWhere((i) => i.id == 'Leite')
+            .removedAt,
+        isNull,
+      );
+      await db.execute('DROP TRIGGER fail_remove');
+      await tester.tap(find.byKey(const ValueKey('remove-item')));
+      await tester.pumpAndSettle();
+      expect(find.text('Leite'), findsNothing);
+      expect(find.text('Carne'), findsOneWidget);
+      expect((await repository.listItems('remove')).length, 3);
+      expect(
+        (await repository.listItems('remove'))
+            .firstWhere((i) => i.id == 'Leite')
+            .removedAt,
+        isNotNull,
+      );
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remocao Android'));
+      await tester.pumpAndSettle();
+      expect(find.text('Leite'), findsNothing);
+      expect(find.text('Carne'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'F2-04 Android: editar produto no meio mantém posição após reabrir tela',
     (tester) async {
       await repository.createList(id: 'order', name: 'Ordem Android');

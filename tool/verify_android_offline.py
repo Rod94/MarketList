@@ -1,4 +1,4 @@
-"""Verifica F1-05 no app normal; nunca limpa o banco nem desinstala o pacote."""
+"""Verifica listas e, com --items, a Fase 2 offline no app normal, sem reset/uninstall."""
 
 import argparse
 import json
@@ -109,10 +109,13 @@ def main():
     parser.add_argument("--serial", required=True)
     parser.add_argument("--inspect", action="store_true", help="Somente inspeciona controles do MarketList.")
     parser.add_argument("--run", action="store_true", help="Autoriza teste com modo avião/Wi-Fi temporários.")
+    parser.add_argument("--items", action="store_true", help="Inclui produtos/quantidades/remoção/ordem da Fase 2.")
     options = parser.parse_args()
     if options.inspect == options.run:
         parser.error("Escolha exatamente --inspect ou --run.")
-    output = Path(__file__).resolve().parents[1] / "build" / "offline_verification"
+    if options.items and not options.run:
+        parser.error("--items exige --run.")
+    output = Path(__file__).resolve().parents[1] / "build" / ("offline_verification_f2" if options.items else "offline_verification")
     output.mkdir(parents=True, exist_ok=True)
     check = AndroidCheck(options.adb, options.serial, output)
     if options.inspect:
@@ -124,7 +127,7 @@ def main():
             check.adb("shell", "rm", "-f", check.remote_xml, check=False)
         return
 
-    name = f"TesteOfflineF1_{uuid.uuid4().hex[:8]}"
+    name = f"TesteOffline{'F2' if options.items else 'F1'}_{uuid.uuid4().hex[:8]}"
     report = {"test_list": name, "persisted_after_restart": False, "cleanup_ok": False}
     original_airplane = check.setting("airplane_mode_on")
     original_wifi = check.setting("wifi_on")
@@ -162,6 +165,21 @@ def main():
         check.screenshot("form_keyboard.png")
         check.tap_label("Criar lista")
         check.home_with(name)
+        if options.items:
+            check.tap_label(name)
+            check.home_with(name)
+            for product, quantity in [("CarneTeste", None), ("LeiteTeste", "5"), ("RemovidoTeste", "2")]:
+                check.tap_label("Adicionar produto")
+                check.edit(0, product)
+                if quantity is not None:
+                    check.edit(1, quantity)
+                check.screenshot("item_form_keyboard.png")
+                check.tap_label("Salvar produto")
+                check.home_with(name)
+            check.tap_label("RemovidoTeste")
+            check.tap_label("Remover produto")
+            check.wait_for(lambda nodes: not any(check.has_label(node, "RemovidoTeste") for node in nodes)
+                           and not any(node.get("class") == "android.widget.EditText" for node in nodes))
         original_pid = check.adb("shell", "pidof", PACKAGE)
         if not original_pid:
             raise RuntimeError("Processo inicial não identificado.")
@@ -173,6 +191,19 @@ def main():
             raise RuntimeError("Não foi comprovada a troca de processo.")
         if not any(check.has_label(node, "Orçamento: R$ 123,45") for node in nodes):
             raise RuntimeError("Orçamento não recuperado na interface.")
+        if options.items:
+            check.tap_label(name)
+            nodes = check.home_with("CarneTeste")
+            for label in ("LeiteTeste", "Pendente · Planejado: 5", "Pendente · Quantidade não informada"):
+                if not any(check.has_label(node, label) for node in nodes):
+                    raise RuntimeError(f"Dado de produto não recuperado: {label}")
+            if any(check.has_label(node, "RemovidoTeste") for node in nodes):
+                raise RuntimeError("Produto removido reapareceu após reinício.")
+            first = next(i for i, node in enumerate(nodes) if check.has_label(node, "CarneTeste"))
+            second = next(i for i, node in enumerate(nodes) if check.has_label(node, "LeiteTeste"))
+            if first >= second:
+                raise RuntimeError("Ordem de cadastro não foi preservada.")
+            report.update(items_persisted=True, removed_item_hidden=True, order_preserved=True)
         report.update(persisted_after_restart=True, original_pid=original_pid, new_pid=new_pid)
         check.screenshot("after_restart_offline.png")
     except Exception as error:

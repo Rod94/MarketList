@@ -188,3 +188,14 @@ Nenhuma regra de negócio aprovada foi substituída. Q-001 a Q-007 permanecem ab
 - Remoção/ocultação e garantia de ordem visual serão tratadas separadamente em F2-04/05. Q-001 a Q-007 seguem abertas; nenhum prazo de Desfazer ou regra de preço foi escolhido.
 
 F2-04, 10/11/2026: comparador puro por sortOrder com desempate por ID concretiza D-011; carga/cache usam cópias ordenadas sem alterar posições no banco. Não se ordena por nome ou quantidade. Sem mudança de regra ou esquema; teste de estabilidade após compra depende da F3.
+
+## 14. Remoção e conjunto visível — F2-05, 10/11/2026
+
+- Ação textual Remover produto aparece no formulário de edição, não na inclusão. Só fecha/exibe sucesso após confirmação do repositório; operação pendente bloqueia outras ações e Voltar. Falha conserva o produto e o rascunho. Lista finalizada/ausente bloqueia novas escritas ao ser detectada.
+- `visibleItems` é uma projeção imutável de registros sem removedAt, preservando a ordem. Leitura do repositório continua incluindo removidos para não confundir armazenamento com filtro visual. Após confirmação de remoção/ausência, somente o ID correspondente é retirado do cache; não se inventa uma data de persistência no cliente, pois o contrato retorna bool. Reabertura recarrega o tombstone real e o oculta.
+- Retorno false de remoção significa ausente/já removido: retira o ID obsoleto da tela, mantém formulário com mensagem compreensível e não declara nova remoção bem-sucedida. Erro SQL não muda o conjunto confirmado.
+- O resultado do modal usa enum ItemFormResult (salvo/removido), evitando confundir cancelamento com sucesso. Sem evento paralelo ou efeito de interface antes da gravação.
+- Q-004 permanece aberta: não há Desfazer, prazo, restauração ou exclusão física de item. Essa ausência é prevista pelo próprio critério F2-05, que exige decisão antes de implementar Desfazer. CT-050 financeiro (retirar subtotal de item comprado) depende da F3; a F2 cobre remoção lógica/visibilidade de produtos planejados, sem somas fictícias.
+- O roteiro host existente ganhou `--run --items`: cria lista exclusiva com três produtos, remove um, reinicia o processo sem rede, verifica quantidades/ordem/ocultação e limpa apenas a própria lista. Preserva configurações capturadas de rede/tela em finally; evidências da F2 ficam em diretório próprio, sem sobrescrever a evidência offline F1. Sem dependência nova ou rede no runtime do app.
+
+Q-001 a Q-007 não foram resolvidas silenciosamente. Antes de começar F3-01, será necessário resolver Q-001 e limites de entrada de preços. Nenhum cálculo de dinheiro/estado de compra foi implementado na F2.

@@ -1,5 +1,7 @@
 # Fase 2 — Relatório incremental
 
+**Fase 2 concluída em 10/11/2026.** F2-03/04/05 foram implementadas sequencialmente nesta entrega, com commit/envio individual, após autorização para concluir a fase. Resultado final: **189 testes convencionais, 17 nativos Android e 1 reinício offline com produtos aprovados**; análise sem problemas, APK normal instalado/aberto. Fase 3 não iniciada. As seções abaixo preservam o relato de cada tarefa no momento de sua entrega; afirmações antigas de pendências são históricas.
+
 ## F2-01 — Modelo de item e quantidade planejada opcional
 
 **Data:** 10/11/2026. **Status:** concluída. F2-02 em diante permanecem pendentes. Escopo autorizado: uma tarefa pequena, com commit e envio ao GitHub ao concluir, seguindo orientação do usuário.
@@ -153,3 +155,33 @@ Conceitos: `compareTo` devolve negativo/zero/positivo para sort; `toList()..sort
 RED do comparador falhou por método inexistente, sem asserções executadas. GREEN/regressão: **181 testes aprovados**, incluindo **5 novos** de domínio, estado, widget e SQLite; análise sem problemas. Logs em build/f2-04-red.log e f2-04-regression.log. Ao validar manualmente, cadastre Zebra, Leite, Arroz, renomeie Leite para Abacate e reabra a lista: a posição do meio deve permanecer. Exercício opcional: acrescentar numa branch de treino um teste de edição da última linha sem movê-la. Estabilidade após registrar preços só poderá ser exercitada na F3; não é declarada testada aqui.
 
 `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose`: **6 aprovados**, incluindo o novo cenário de ordem visual. `flutter build apk --debug`: aprovado em **11,2 s**; cópia marketlist-f2-04-debug.apk instalada (**Success**) e aberta (**Status: ok / COLD**). Os bancos de integração são isolados e o pacote não foi desinstalado. Sem modo avião/iOS/release nesta tarefa.
+
+## F2-05 — Remoção lógica e conjunto visível
+
+**Data:** 10/11/2026. A persistência de remoção da F2-02 agora está ligada à interface: toque no produto → Remover produto. A linha só desaparece após o banco confirmar, mantendo sua informação no SQLite. Itens já removidos não reaparecem na carga. Nenhum Desfazer foi implementado enquanto Q-004 está aberta, conforme o critério da tarefa.
+
+Arquivos: shopping_items_view_model.dart (remoção pendente/projeção imutável), shopping_screen.dart (conjunto visível/feedback), item_form_sheet.dart (ação explícita/resultado enum), testes unitários/widget existentes (8 novos casos), app_smoke_test.dart (remoção com falha SQL/retry/reabertura), tool/verify_android_offline.py (opção --items para evidência offline F2), README/TASKS/TESTING/DECISIONS/ARCHITECTURE/este relatório. Banco/contrato/migrações não mudaram.
+
+Fluxo: **ação Remover → ViewModel bloqueia operações → repositório verifica lista ativa e grava data em transação → commit → ID sai do cache/conjunto visível → modal fecha e informa remoção**. Se falhar, linha/campos permanecem. Se já ausente, o cache obsoleto é retirado sem declarar nova remoção; mensagem pede cancelar/atualizar. Recarregar traz os registros reais (inclusive tombstones), e a projeção só mostra os não removidos. Cache não inventa data para representar resposta bool do repositório.
+
+Conceitos: `where` projeta a coleção sem apagar registros, como um filtro LINQ em C#; `List.unmodifiable` protege o resultado. Remoção lógica é diferente de exclusão física: a data marca retirada do conjunto ativo. Enum no retorno de Navigator diferencia salvar/remover/cancelar com tipos. Future/await e notificações só atualizam dados confirmados; dispose continua impedindo notificar tela encerrada.
+
+RED falhou por APIs ainda ausentes; GREEN de estado/widgets passou com **26 testes**, incluindo **8 novos**. Regressão final **189 aprovados/0 falhas**; analyze sem problemas; 39 arquivos Dart formatados. Roteiro Python compilou. Ainda não existem preços/entradas, portanto não se alega validação financeira de CT-050, nem compra/histórico/finalização. Nenhuma regra de negócio foi substituída.
+
+Validação manual: abrir lista, adicionar nome sozinho e outro com quantidade 5; editar e limpar quantidade; confirmar que ordem permanece; tocar no produto e Remover produto; sair/reabrir a lista e verificar que não reaparece. Cancelar formulário não grava. Para exercitar sem risco aos dados normais, use testes com bancos temporários ou crie uma lista de teste própria e exclua apenas ela. Exercício opcional: numa branch de treino, testar que remover a primeira linha não muda a posição das demais.
+
+### Evidência final de Android, offline e APK
+
+- `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose`: **7 aprovados**, saída 0. `flutter test integration_test/database_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose`: **10 aprovados**, saída 0. Todos com bancos isolados e sem uninstall.
+- `flutter build apk --debug`: aprovado em **12,9 s**. Normal copiado como `build/app/outputs/flutter-apk/marketlist-phase-2-debug.apk`, **193.741.371 bytes**, SHA-256 `08fd86ea7f378781baa63ed6a69b0511c6f4b5f12207c477c27d6e5a064d4cbe`. Install -r: **Success**; abertura: **Status: ok / COLD**. APKs identificados anteriores preservados.
+- `python -m py_compile tool/verify_android_offline.py`: aprovado. `--inspect` confirmou Minhas listas antes de alterar rede. `python tool/verify_android_offline.py --adb C:\Users\Rodolpho\AppData\Local\Android\Sdk\platform-tools\adb.exe --serial RXCY300NZZH --run --items`: **saída 0**.
+- Roteiro criou somente `TesteOfflineF2_11924b48` com orçamento R$ 123,45, CarneTeste sem quantidade, LeiteTeste com 5 e RemovidoTeste com 2. Removeu o terceiro; force-stop/nova abertura mudou PID **17532→19921**. Sem rede padrão, recuperou nome/orçamento/produtos/quantidades, mesma ordem e ausência do removido.
+- Flags items_persisted/removed_item_hidden/order_preserved/persisted_after_restart/cleanup_ok/network_settings_restored/screen_setting_restored **true**. Apenas a própria lista foi excluída. Modo avião voltou 0, Wi-Fi 1 e stay-on 0, iguais aos originais; checagem posterior confirmou rede padrão reconectada (251).
+- Capturas `item_form_keyboard.png` e `after_restart_offline.png` inspecionadas: campos/ações acima do IME real, textos legíveis e projeção correta em AMOLED. Evidência em build/offline_verification_f2, fora do Git e separada da F1.
+- Verificação final `dart format --output=none --set-exit-if-changed .`: **39 arquivos sem alterações**, saída 0. Nenhum código Dart mudou depois das verificações aprovadas.
+
+### Conclusão e pendências reais
+
+F2 completa no escopo de planejamento, sem mudar regras aprovadas. Nome obrigatório e base de CT-050 foram esclarecidos em TASKS para não confundir modelo/remoção com cálculo financeiro futuro. Ainda não existem entradas/preços, total de compra, filtros Todos/A comprar, finalização ou histórico. Desfazer permanece sem implementação enquanto Q-004 está aberta. Auditoria completa de acessibilidade, iOS/release e avisos antigos do doctor não foram reavaliados; interrupção histórica do runner não teve causa comprovada.
+
+Commits desta sequência: F2-03 `b27c5ca`, F2-04 `1c5986d`, seguidos do commit individual F2-05 de fechamento. Cada tarefa foi enviada antes de iniciar a próxima. Próximo passo sugerido: F3-01, somente após autorização e decisão de preço zero/limites (Q-001).

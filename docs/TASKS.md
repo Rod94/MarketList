@@ -1,6 +1,6 @@
 # TASKS.md — Plano incremental de desenvolvimento
 
-**Versão:** 0.10 — Fases 0 e 1 concluídas; F2-01 a F2-04 concluídas
+**Versão:** 1.0 — Fases 0, 1 e 2 concluídas; Fase 3 não iniciada
 
 **Data:** 10/11/2026 (plano original: 07/11/2026)
 **Fontes de verdade:** `SPEC.md` (regras), `DESIGN.md` (interação), `ARCHITECTURE.md` (estrutura), `TESTING.md` (casos), `DECISIONS.md` (decisões).
@@ -67,13 +67,17 @@
 | F2-02 | Adicionar/editar/remover item com persistência | CT-004 a CT-006, CT-021 conforme aplicável | **Feito:** migração v1→v2, CRUD transacional com remoção marcada, retry e bloqueio de finalizadas; 31 testes novos SQLite, regressão com 160 aprovados e 13 nativos aprovados (10 banco + 3 UI após tentativa interrompida do runner) |
 | F2-03 | Formulário compacto com nome obrigatório e quantidade opcional | UX-001/UX-002 na fatia de planejamento; sem exigir marca, foto nem categoria | **Feito:** navegação, inclusão/edição persistida, formulário acessível com teclado, erros/retry e proteção de gravação; 16 novos testes, regressão 176 aprovados |
 | F2-04 | Ordenação estável por `sortOrder` | Item não muda de posição após edição | **Feito:** comparador puro, carga/cache ordenados e identidade preservada; 5 novos testes, regressão com 181 aprovados |
-| F2-05 | Remoção lógica com redução do conjunto visível | CT-005, CT-050; política de `Desfazer` só depois de decisão | Pendente |
+| F2-05 | Remoção lógica com redução do conjunto visível | CT-005; base de CT-050 (subtotal depende de F3); `Desfazer` só depois de decisão | **Feito:** remoção confirmada/ocultação, campos mantidos na falha e recarga; 8 novos testes, regressão 189 aprovados, 17 nativos e 1 reinício offline com produtos aprovados |
 
 **Escopo F2-01:** representação dos campos documentados, incluindo origem, posição e data de remoção; nenhum fluxo de ordenação/remoção, CRUD, migração ou tela de produto foi antecipado. CT-006/UX-002 têm cobertura apenas da semântica do modelo. Evidências e explicação: `PHASE_2_REPORT.md`.
 
 **Escopo F2-02:** persistência e leitura de registros, incluindo os marcados como removidos. O backend atribui/preserva posição porque ela é campo obrigatório do modelo. Formulário, integração visual de ordenação e ocultação de removidos continuam pendentes em F2-03/04/05. CT-005 está coberto na marcação persistida; CT-021 na identidade preservada, sem entradas de compra ainda. A migração mantém a v1 publicada intacta, sem reset nem reescrever listas. Ver resultados/limitações atualizados em `PHASE_2_REPORT.md` e TESTING.
 
 **Explicações didáticas:** valor opcional (`int?`), formulário, validação, diferença entre estado visual e domínio.
+
+**Saída real da Fase 2 — 10/11/2026:** tarefas F2-01 a F2-05 **feitas**. App normal permite planejar, editar/limpar quantidade e remover mantendo ordem. Verificação final: **189 testes convencionais, 17 nativos (7 UI + 10 banco) e 1 roteiro offline com novo processo aprovados**; analyze sem problemas, 39 arquivos Dart formatados, APK normal instalado/aberto. Roteiro criou só uma lista própria, conferiu produtos/quantidades/ordem/remoção após reiniciar sem rede, excluiu só essa lista e restaurou rede/tela. Nenhum reset/uninstall/migração extra foi realizado em F2-03/04/05.
+
+**Limites de cobertura:** UX-001 completo com preço e CT-050 financeiro requerem F3; estabilidade após compra/filtros/total requer F3/F4. Não se marcou esses fluxos completos como testados. O rótulo CT-050 foi esclarecido para separar a base de remoção desta fase do cálculo futuro, sem alterar regra de negócio. Q-004 continua aberta e Desfazer não foi implementado.
 
 ## Fase 3 — Registros de compra e matemática financeira
 
@@ -162,6 +166,6 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**F2-04 entregue.** Próxima tarefa pequena: **F2-05 — remoção lógica e conjunto visível**. Usuário autorizou concluir toda a Fase 2, mantendo uma tarefa e um commit/envio por vez. Campo de preço/subtotal só será introduzido na F3; UX-001 está coberto nesta fase somente para nome/quantidade juntos. Sem preços, compra, finalização ou histórico.
+**Fase 2 entregue.** Próxima tarefa pequena sugerida: **F3-01 — conversor de moeda e validações**, somente após autorização para F3 e decisão de Q-001 (preço zero/limites). Usuário autorizou concluir F2 por tarefas sequenciais, cada uma com commit/envio. Campo de preço/subtotal, compra, finalização e histórico não foram implementados.
 
-**Estado atual:** Fases 0/1 e F2-01 a F2-04 **feitas**; F2-05 **pendente e autorizada como próxima tarefa**. Fase 3 não iniciada. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos antigos de ausência de `.git` e de UI de produtos inexistente são históricos.
+**Estado atual:** Fases 0/1/2 **feitas**; F3 em diante **pendentes e não iniciadas**. Commits publicados das tarefas anteriores: F2-01 `9cb4acd`, F2-02 `17d1dd0`, F2-03 `b27c5ca`, F2-04 `1c5986d`; F2-05 corresponde ao commit individual de fechamento, conforme autorização persistente. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos antigos de ausência de `.git` e de UI de produtos inexistente são históricos.

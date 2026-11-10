@@ -31,6 +31,118 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets(
+    'F2-05 oculta removidos da carga e remove somente o produto selecionado',
+    (tester) async {
+      repository.items.addAll([
+        for (var i = 0; i < 3; i++)
+          ShoppingItem(
+            id: 'i$i',
+            shoppingListId: 'list',
+            name: 'Produto $i',
+            origin: ShoppingItemOrigin.planned,
+            sortOrder: i,
+            removedAt: i == 2 ? DateTime.utc(2026) : null,
+          ),
+      ]);
+      await open(tester);
+      expect(find.text('Produto 2'), findsNothing);
+      await tester.tap(find.text('Produto 0'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('remove-item')));
+      await tester.pumpAndSettle();
+      expect(find.text('Produto 0'), findsNothing);
+      expect(find.text('Produto 1'), findsOneWidget);
+      expect(find.text('Produto removido.'), findsOneWidget);
+      expect(repository.items.length, 3);
+      expect(repository.items.first.removedAt, isNotNull);
+      await tester.tap(find.byTooltip('Atualizar produtos'));
+      await tester.pumpAndSettle();
+      expect(find.text('Produto 0'), findsNothing);
+      expect(find.text('Produto 2'), findsNothing);
+    },
+  );
+  testWidgets(
+    'F2-05 falha mantém campos e produto; retry remove depois de confirmar',
+    (tester) async {
+      repository.items.add(
+        ShoppingItem(
+          id: 'i',
+          shoppingListId: 'list',
+          name: 'Carne',
+          plannedQuantity: 5,
+          origin: ShoppingItemOrigin.planned,
+          sortOrder: 0,
+        ),
+      );
+      repository.itemRemoveHandler = (_, _) async =>
+          throw StateError('storage');
+      await open(tester);
+      await tester.tap(find.text('Carne'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('remove-item')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Não foi possível remover'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('item-quantity')))
+            .controller!
+            .text,
+        '5',
+      );
+      expect(find.text('Produto removido.'), findsNothing);
+      repository.itemRemoveHandler = null;
+      await tester.tap(find.byKey(const ValueKey('remove-item')));
+      await tester.pumpAndSettle();
+      expect(find.text('Nenhum produto nesta lista.'), findsOneWidget);
+    },
+  );
+  testWidgets('F2-05 remoção pendente bloqueia novo toque, salvar e cancelar', (
+    tester,
+  ) async {
+    repository.items.add(
+      ShoppingItem(
+        id: 'i',
+        shoppingListId: 'list',
+        name: 'Carne',
+        origin: ShoppingItemOrigin.planned,
+        sortOrder: 0,
+      ),
+    );
+    final pending = Completer<bool>();
+    repository.itemRemoveHandler = (_, _) => pending.future;
+    await open(tester);
+    await tester.tap(find.text('Carne'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('remove-item')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextButton>(find.byKey(const ValueKey('remove-item')))
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const ValueKey('save-item')))
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<TextButton>(find.byKey(const ValueKey('cancel-item')))
+          .onPressed,
+      isNull,
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('item-name')), findsOneWidget);
+    pending.complete(true);
+    await tester.pumpAndSettle();
+    expect(repository.itemRemoveCalls, 1);
+    expect(find.text('Produto removido.'), findsOneWidget);
+  });
+
   testWidgets('F2-04 editar item no meio mantém a linha após recarregar', (
     tester,
   ) async {

@@ -14,7 +14,7 @@ class ShoppingScreen extends StatelessWidget {
     final started = item == null ? model.beginCreate() : model.beginEdit(item);
     if (!started) return;
     try {
-      final saved = await showModalBottomSheet<bool>(
+      final saved = await showModalBottomSheet<ItemFormResult>(
         context: context,
         isScrollControlled: true,
         isDismissible: false,
@@ -26,9 +26,16 @@ class ShoppingScreen extends StatelessWidget {
           child: const ItemFormSheet(),
         ),
       );
-      if (saved == true && context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Produto salvo.')));
+      if (saved != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              saved == ItemFormResult.removed
+                  ? 'Produto removido.'
+                  : 'Produto salvo.',
+            ),
+          ),
+        );
       }
     } finally {
       model.clearDraft();
@@ -38,6 +45,7 @@ class ShoppingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final model = context.watch<ShoppingItemsViewModel>();
+    final visibleItems = model.visibleItems;
     return PopScope(
       canPop: !model.isSaving,
       child: Scaffold(
@@ -81,7 +89,7 @@ class ShoppingScreen extends StatelessWidget {
                   ),
                 ),
               Expanded(
-                child: model.items.isEmpty
+                child: visibleItems.isEmpty
                     ? Center(
                         child: Text(
                           model.isLoading
@@ -92,10 +100,10 @@ class ShoppingScreen extends StatelessWidget {
                         ),
                       )
                     : ListView.separated(
-                        itemCount: model.items.length,
+                        itemCount: visibleItems.length,
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
-                          final item = model.items[index];
+                          final item = visibleItems[index];
                           return ListTile(
                             key: ValueKey('item-${item.id}'),
                             title: Text(item.name),

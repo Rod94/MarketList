@@ -192,4 +192,4 @@ As regras de apresentação e de persistência estão detalhadas em `DESIGN.md` 
 - `TASKS.md`: entregas pequenas e validáveis por fase.
 - `../AGENTS.md`: orientações para o Codex, incluindo explicações didáticas.
 
-**Progresso de implementação:** consultar `TASKS.md` e os relatórios de execução. Em 09/11/2026, Fases 0/1 foram concluídas; os demais requisitos deste documento continuam como escopo planejado do MVP. Esta atualização de progresso não altera as regras aprovadas.
+**Progresso de implementação:** consultar `TASKS.md` e os relatórios de execução. Em 10/11/2026, Fases 0/1/2 foram concluídas, incluindo planejamento visual de produtos com quantidade opcional, edição, ordem e remoção lógica. Preços, compra, finalização e histórico continuam planejados. Esta atualização de progresso não altera as regras aprovadas.

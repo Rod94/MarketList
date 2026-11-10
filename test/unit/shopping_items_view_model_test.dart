@@ -181,6 +181,88 @@ void main() {
     },
   );
 
+  test(
+    'F2-05: projeção oculta removidos e conserva a ordem dos demais',
+    () async {
+      repository.items.addAll([
+        for (var i = 0; i < 3; i++)
+          ShoppingItem(
+            id: 'i$i',
+            shoppingListId: 'list',
+            name: 'Produto $i',
+            origin: ShoppingItemOrigin.planned,
+            sortOrder: i,
+            removedAt: i == 1 ? DateTime.utc(2026) : null,
+          ),
+      ]);
+      await model.load();
+      expect(model.items.length, 3);
+      expect(model.visibleItems.map((i) => i.id), ['i0', 'i2']);
+      expect(() => model.visibleItems.clear(), throwsUnsupportedError);
+    },
+  );
+  test(
+    'F2-05: remover aguarda commit, bloqueia repetição e oculta só seu item',
+    () async {
+      repository.items.add(item());
+      await model.load();
+      model.beginEdit(model.items.single);
+      final pending = Completer<bool>();
+      repository.itemRemoveHandler = (_, _) => pending.future;
+      final removing = model.removeEditingItem();
+      expect(model.visibleItems.length, 1);
+      expect(model.isRemoving, isTrue);
+      expect(await model.removeEditingItem(), isFalse);
+      model.clearDraft();
+      expect(model.draftName, 'Carne');
+      pending.complete(true);
+      expect(await removing, isTrue);
+      expect(model.visibleItems, isEmpty);
+      expect(repository.itemRemoveCalls, 1);
+    },
+  );
+  test('F2-05: falha mantém produto/rascunho e permite retry', () async {
+    repository.items.add(item(quantity: 5));
+    await model.load();
+    model.beginEdit(model.items.single);
+    model.setDraftName('Carne bovina');
+    repository.itemRemoveHandler = (_, _) async => throw StateError('storage');
+    expect(await model.removeEditingItem(), isFalse);
+    expect(model.visibleItems.length, 1);
+    expect(model.draftName, 'Carne bovina');
+    expect(model.draftQuantity, '5');
+    expect(model.saveError, isNotNull);
+    repository.itemRemoveHandler = null;
+    expect(await model.removeEditingItem(), isTrue);
+    await model.load();
+    expect(model.visibleItems, isEmpty);
+    expect(repository.items.single.removedAt, isNotNull);
+  });
+  test('F2-05: remoção já ausente não declara novo sucesso', () async {
+    repository.items.add(item());
+    await model.load();
+    model.beginEdit(model.items.single);
+    repository.itemRemoveHandler = (_, _) async => false;
+    expect(await model.removeEditingItem(), isFalse);
+    expect(model.saveError, isNotNull);
+    expect(model.draftName, 'Carne');
+    expect(model.visibleItems, isEmpty);
+  });
+  test(
+    'F2-05: finalizada recusa remoção, preserva item e bloqueia edição',
+    () async {
+      repository.items.add(item());
+      await model.load();
+      model.beginEdit(model.items.single);
+      repository.itemRemoveHandler = (_, _) async =>
+          throw const FinalizedShoppingListException('list');
+      expect(await model.removeEditingItem(), isFalse);
+      expect(model.readOnly, isTrue);
+      expect(model.visibleItems.length, 1);
+      expect(model.draftName, 'Carne');
+    },
+  );
+
   test('dispose durante carga não notifica nem lança erro', () async {
     final pending = Completer<List<ShoppingItem>>();
     repository.itemsLoadHandler = (_) => pending.future;

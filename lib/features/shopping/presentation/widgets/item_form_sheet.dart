@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../view_models/shopping_items_view_model.dart';
 
+enum ItemFormResult { saved, removed }
+
 class ItemFormSheet extends StatefulWidget {
   const ItemFormSheet({super.key});
   @override
@@ -31,7 +33,14 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
 
   Future<void> _save() async {
     final saved = await context.read<ShoppingItemsViewModel>().saveDraft();
-    if (saved && mounted) Navigator.pop(context, true);
+    if (saved && mounted) Navigator.pop(context, ItemFormResult.saved);
+  }
+
+  Future<void> _remove() async {
+    final removed = await context
+        .read<ShoppingItemsViewModel>()
+        .removeEditingItem();
+    if (removed && mounted) Navigator.pop(context, ItemFormResult.removed);
   }
 
   @override
@@ -94,8 +103,10 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
                         ),
                       ),
                       if (model.isSaving)
-                        const LinearProgressIndicator(
-                          semanticsLabel: 'Salvando produto',
+                        LinearProgressIndicator(
+                          semanticsLabel: model.isRemoving
+                              ? 'Removendo produto'
+                              : 'Salvando produto',
                         ),
                       if (model.saveError != null) ...[
                         const SizedBox(height: AppSpacing.medium),
@@ -113,6 +124,15 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
                   ),
                 ),
               ),
+              if (model.editingItem != null)
+                TextButton.icon(
+                  key: const ValueKey('remove-item'),
+                  onPressed: model.isSaving || model.readOnly ? null : _remove,
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(
+                    model.isRemoving ? 'Removendo…' : 'Remover produto',
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.medium),
                 child: Row(
@@ -122,7 +142,7 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
                         key: const ValueKey('cancel-item'),
                         onPressed: model.isSaving
                             ? null
-                            : () => Navigator.pop(context, false),
+                            : () => Navigator.pop(context),
                         child: const Text('Cancelar'),
                       ),
                     ),

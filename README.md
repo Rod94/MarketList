@@ -2,13 +2,9 @@
 
 Repositório: [Rod94/MarketList](https://github.com/Rod94/MarketList). Branch principal: `main`.
 
-Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e base nativa iOS preparada. **Fases 0 e 1 concluídas:** temas Claro/AMOLED, tela Minhas listas, criação com nome/orçamento opcional, exclusão confirmada e persistência SQLite, inclusive após reiniciar sem rede. Produtos, preços, compra, finalização e histórico pertencem às próximas fases.
+Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e base nativa iOS preparada. Permite criar listas com orçamento opcional e planejar produtos por nome/quantidade opcional, editar e remover, preservando ordem e dados em SQLite offline. Temas Claro/AMOLED com fundo preto verdadeiro. Preços, total de compra, finalização e histórico pertencem às próximas fases.
 
-**F2-01/02 concluídas em 10/11/2026:** modelo de item e persistência SQLite v2 com inclusão/edição/remoção marcada. Quantidade ausente continua null; gravações em finalizadas são recusadas. Migração preserva as listas v1, sem reset. Regressão atual: **160 testes aprovados**, análise sem problemas e **13 testes nativos aprovados**. Ainda não há cadastro de produtos na interface. Consulte o [relatório da Fase 2](docs/PHASE_2_REPORT.md).
-
-**F2-03:** toque em uma lista para abrir seus produtos. Adicionar produto aceita nome obrigatório e quantidade opcional; tocar no produto permite editar/limpar quantidade. Gravação confirmada atualiza a tela, falha mantém os campos. Regressão: **176 testes aprovados**. Ordem/remoção visual são as próximas tarefas; preços/totais continuam para F3. Os relatos F2-01/02 acima descrevem a etapa anterior.
-
-**F2-04:** ordem de cadastro preservada após editar/renomear/recarregar; regressão com **181 testes aprovados**, análise sem problemas. Remoção visual é a próxima tarefa autorizada.
+**Fases 0, 1 e 2 concluídas:** quantidade ausente permanece null; edição mantém identidade/posição; remoção lógica oculta o produto somente após persistir. Erro mantém os campos e retry reutiliza o ID. Listas finalizadas são protegidas no repositório. Banco v2 migra listas v1 sem reset. Regressão final: **189 testes convencionais, 17 testes nativos Android e 1 reinício offline com produtos aprovados**, análise sem problemas. Consulte os comandos, evidências e limites no [relatório da Fase 2](docs/PHASE_2_REPORT.md).
 
 ## Ambiente usado
 
@@ -46,7 +42,7 @@ flutter test integration_test --no-uninstall -d ID_ANDROID
 flutter build apk --debug
 ```
 
-O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-f2-02-debug.apk` na mesma pasta, compatível com o esquema v2. Artefatos identificados anteriores foram preservados, incluindo `marketlist-phase-1-debug.apk`. Após abrir v2, não use APK antigo v1 como rollback: ele recusará a versão superior, sem apagar dados. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
+O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-phase-2-debug.apk` na mesma pasta, compatível com o esquema v2. Artefatos identificados anteriores foram preservados. Após abrir v2, não use APK antigo v1 como rollback: ele recusará a versão superior, sem apagar dados. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
 
 Use `--no-uninstall` na integração: o Flutter 3.47.9 desinstala o pacote por padrão ao encerrar o teste. A opção preserva a instalação e seus dados; ao terminar, gere/instale o APK normal para substituir a variante de teste. Os testes de banco/repositório usam exclusivamente arquivos temporários próprios.
 
@@ -58,6 +54,8 @@ Validação final da Fase 1: `flutter analyze` sem problemas, `flutter test` com
 
 Em Minhas listas, toque em **Nova lista**, informe nome e orçamento opcional (ex.: `250,00`, sem pontos), e confirme **Criar lista**. A lista aparece somente após salvar. Em caso de erro, os campos ficam preenchidos para nova tentativa. Cancelar descarta apenas o rascunho. O ícone de excluir abre confirmação com nome; Aparência permite Claro/AMOLED/Sistema. A preferência de tema ainda não é gravada.
 
+Toque na lista → **Adicionar produto** → nome e quantidade opcional → **Salvar produto**. Quantidade vazia não vira uma unidade. Toque num produto para editar nome/quantidade ou **Remover produto**. Removido sai da tela e permanece marcado no banco; não há Desfazer enquanto sua política não for decidida. A ordem de cadastro permanece mesmo ao renomear. Não há preços ou total de compra nesta fase.
+
 ## Verificação de reinício offline
 
 O roteiro `tool/verify_android_offline.py` exige Python/ADB, celular desbloqueado e app normal instalado/aberto. `--inspect` só inspeciona; `--run` altera temporariamente rede/tela, cria e remove uma lista própria. Leia o roteiro antes de executar; a conexão do aparelho fica interrompida durante o teste. Configurações capturadas são restauradas em finally. Exemplo com caminhos ajustados ao seu ambiente:
@@ -65,9 +63,10 @@ O roteiro `tool/verify_android_offline.py` exige Python/ADB, celular desbloquead
 ```powershell
 python tool/verify_android_offline.py --adb CAMINHO_ADB --serial ID_ANDROID --inspect
 python tool/verify_android_offline.py --adb CAMINHO_ADB --serial ID_ANDROID --run
+python tool/verify_android_offline.py --adb CAMINHO_ADB --serial ID_ANDROID --run --items
 ```
 
-Resultado/capturas ficam em `build/offline_verification/`, fora do Git. O roteiro nunca limpa o banco nem desinstala o aplicativo.
+Resultado/capturas de listas ficam em `build/offline_verification/`; `--items` usa `build/offline_verification_f2/`, cria três produtos, remove um e confere quantidades/ordem/ocultação após novo processo offline. Ambos ficam fora do Git, removem somente a própria lista e restauram rede/tela. O roteiro nunca limpa o banco nem desinstala o aplicativo.
 
 ## Estrutura atual
 
@@ -85,11 +84,15 @@ lib/
       migrations/v2.dart        # Tabela de itens, FK/cascade e posição única
   features/shopping/presentation/screens/
     shopping_lists_screen.dart  # Tela inicial e confirmação de exclusão
+    shopping_screen.dart        # Produtos da lista e conjunto visível
     scaffold_screen.dart        # Aparência, via AppBar
   features/shopping/presentation/view_models/
     shopping_lists_view_model.dart # Carga, rascunho, erros e operações
+    shopping_items_view_model.dart # Planejamento, ordem, erro/retry e remoção
   features/shopping/presentation/widgets/
     create_list_sheet.dart      # Formulário e ações acima do teclado
+    item_form_sheet.dart        # Inclusão/edição/remoção de produto
+  features/shopping/presentation/item_quantity_input.dart # Parser puro de quantidade
   features/shopping/domain/models/
     shopping_list.dart          # Modelo imutável, com validação e datas UTC
     shopping_item.dart          # Modelo puro; quantidade planejada opcional
@@ -112,7 +115,7 @@ Não há diretórios vazios antecipando banco, dinheiro, checkout ou histórico.
 
 ## Documentação e escopo
 
-Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Fases 0/1 e F2-01/02 estão concluídas. Próxima tarefa sugerida: F2-03. Cada tarefa concluída a partir da F2-01 deve ter commit e envio ao GitHub, conforme orientação do usuário. Regras aprovadas permanecem preservadas.
+Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Fase 3 não iniciada; F3-01 depende de autorização e da decisão de preço zero/limites. Cada tarefa concluída a partir da F2-01 tem commit e envio ao GitHub, conforme orientação do usuário. Regras aprovadas permanecem preservadas.
 
 `AGENTS.md` contém instruções locais, está no `.gitignore` por escolha do usuário e não é enviado ao GitHub. A documentação em `docs/` é versionada.
 
