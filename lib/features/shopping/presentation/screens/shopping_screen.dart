@@ -9,8 +9,15 @@ import '../view_models/shopping_items_view_model.dart';
 import '../purchase_status_text.dart';
 import '../widgets/item_form_sheet.dart';
 
-class ShoppingScreen extends StatelessWidget {
+class ShoppingScreen extends StatefulWidget {
   const ShoppingScreen({super.key});
+
+  @override
+  State<ShoppingScreen> createState() => _ShoppingScreenState();
+}
+
+class _ShoppingScreenState extends State<ShoppingScreen> {
+  bool _onlyToBuy = false;
 
   Future<void> _openForm(BuildContext context, [ShoppingItem? item]) async {
     final model = context.read<ShoppingItemsViewModel>();
@@ -48,13 +55,21 @@ class ShoppingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final model = context.watch<ShoppingItemsViewModel>();
-    final visibleItems = model.visibleItems;
+    final visibleItems = [
+      for (final summary
+          in model.calculation?.items ?? const <ItemPurchaseSummary>[])
+        if (summary.status != ItemPurchaseStatus.removed &&
+            (!_onlyToBuy || summary.status != ItemPurchaseStatus.purchased))
+          summary,
+    ];
     final compactAmounts =
         MediaQuery.sizeOf(context).width < 360 ||
         MediaQuery.textScalerOf(context).scale(14) > 20;
     return PopScope(
       canPop: !model.isSaving,
       child: Scaffold(
+        // The form sheet owns the keyboard inset; keep this route steady behind it.
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: Text(model.shoppingList.name),
           actions: [
@@ -102,6 +117,27 @@ class ShoppingScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
+              if (model.hasLoaded)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.medium,
+                  ),
+                  child: Wrap(
+                    spacing: AppSpacing.small,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Todos'),
+                        selected: !_onlyToBuy,
+                        onSelected: (_) => setState(() => _onlyToBuy = false),
+                      ),
+                      ChoiceChip(
+                        label: const Text('A comprar'),
+                        selected: _onlyToBuy,
+                        onSelected: (_) => setState(() => _onlyToBuy = true),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: visibleItems.isEmpty
                     ? Center(
@@ -109,7 +145,9 @@ class ShoppingScreen extends StatelessWidget {
                           model.isLoading
                               ? 'Carregando produtos…'
                               : model.hasLoaded && model.loadError == null
-                              ? 'Nenhum produto nesta lista.'
+                              ? _onlyToBuy
+                                    ? 'Nenhum produto a comprar.'
+                                    : 'Nenhum produto nesta lista.'
                               : '',
                         ),
                       )
@@ -117,8 +155,8 @@ class ShoppingScreen extends StatelessWidget {
                         itemCount: visibleItems.length,
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
-                          final item = visibleItems[index];
-                          final summary = model.summaryFor(item.id)!;
+                          final summary = visibleItems[index];
+                          final item = summary.item;
                           final statusIcon = switch (summary.status) {
                             ItemPurchaseStatus.pending => Icons.circle_outlined,
                             ItemPurchaseStatus.partial => Icons.timelapse,

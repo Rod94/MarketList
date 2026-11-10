@@ -91,6 +91,54 @@ void main() {
     }
   });
 
+  testWidgets('F4-02 filtra a compra sem mudar posição nem total', (
+    tester,
+  ) async {
+    seedPurchaseStatuses();
+    await open(tester);
+    expect(find.text('Total registrado: R\$ 79,42'), findsOneWidget);
+
+    await tester.tap(find.text('A comprar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Arroz'), findsOneWidget);
+    expect(find.text('Feijão'), findsOneWidget);
+    expect(find.text('Leite'), findsNothing);
+    expect(find.text('Carne'), findsOneWidget);
+    expect(find.text('Total registrado: R\$ 79,42'), findsOneWidget);
+
+    await tester.tap(find.text('Feijão'));
+    await tester.pumpAndSettle();
+    final addPrice = find.text('Adicionar outro preço');
+    await tester.ensureVisible(addPrice);
+    await tester.tap(addPrice);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('purchase-quantity')),
+      '2',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('purchase-price')),
+      '4,20',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-purchase')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Feijão'), findsNothing);
+    expect(find.text('Carne'), findsOneWidget);
+    expect(find.text('Total registrado: R\$ 87,82'), findsOneWidget);
+
+    await tester.tap(find.text('Todos'));
+    await tester.pumpAndSettle();
+    final positions = [
+      for (final name in ['Arroz', 'Feijão', 'Leite', 'Carne'])
+        tester.getTopLeft(find.text(name)).dy,
+    ];
+    expect(positions, orderedEquals([...positions]..sort()));
+    expect(positions.toSet(), hasLength(4));
+    expect(find.text('Total registrado: R\$ 87,82'), findsOneWidget);
+  });
+
   testWidgets(
     'F3-07 confirma a prévia somente após salvar e mantém o preço em falha',
     (tester) async {
