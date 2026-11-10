@@ -14,6 +14,28 @@ class FakeShoppingRepository implements ShoppingRepository {
   final List<ShoppingList> lists;
   final List<ShoppingItem> items;
   final List<PurchaseEntry> entries = [];
+  Future<ShoppingCalculation> Function(String, String, String, PurchaseEntry)?
+  quickPurchaseHandler;
+
+  @override
+  Future<ShoppingCalculation> createItemWithPurchase({
+    required String id,
+    required String shoppingListId,
+    required String name,
+    required PurchaseEntry entry,
+  }) async {
+    final handler = quickPurchaseHandler;
+    if (handler != null) return handler(id, shoppingListId, name, entry);
+    await createItem(
+      id: id,
+      shoppingListId: shoppingListId,
+      name: name,
+      origin: ShoppingItemOrigin.atStore,
+    );
+    entries.add(entry);
+    return loadShoppingList(shoppingListId);
+  }
+
   final List<String> entryCreationIds = [];
   int entryIdCalls = 0;
   int purchaseCreateCalls = 0;

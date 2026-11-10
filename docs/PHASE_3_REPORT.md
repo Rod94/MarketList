@@ -87,3 +87,15 @@ Testes: **7/1** inicialmente nos novos widgets, **8/0** após corrigir layout. A
 Como validar: cadastre Sabonete planejado 5, abra-o, registre 3 a 3,50 e depois Adicionar outro preço com 2 a 4,20. Confira 18,90; corrija ou exclua uma entrada e confira só a diferença. Exercício opcional numa branch de treino: acrescentar teste de excluir a primeira entrada e manter a segunda. Próxima F3-07, inclusão rápida com preço. D-031/032/033 foram aprovadas para as tarefas seguintes e registradas, sem antecipar sua implementação.
 
 APK normal F3-06: `flutter build apk --debug` aprovado em **11,2 s**; cópia marketlist-f3-06-debug.apk instalada (**Success**) e aberta (**Status: ok / COLD**). Normal substituiu variante de integração, sem uninstall. O modo keep-awake USB da sessão de desenvolvimento permanece temporário e será restaurado ao encerrar a sequência, conforme informado ao usuário; baseline em build/f3-android-session-state.json, ignorado.
+
+## F3-07 — Cadastro rápido e encerramento da fase
+
+O formulário reúne nome, quantidade e preço opcional. O rótulo indica quantidade comprada quando há preço e planejada quando o preço fica vazio. Sem quantidade, o valor preenchido representa o total direto. Zero explícito registra compra gratuita. Nome duplicado pode gerar outra linha conforme D-031.
+
+O formulário envia o rascunho ao ViewModel, que calcula a prévia em centavos. O repositório insere item e entrada na mesma transação SQLite e retorna o total confirmado. Os dois IDs permanecem iguais durante a nova tentativa. O teste de rollback comprova que uma falha na entrada também desfaz a inserção do item.
+
+Arquivos envolvidos: contrato e implementação do repositório, ViewModel, formulário de item, fake de teste, testes de SQLite e widgets, integração Android e roteiro offline. O esquema permanece na versão 3. Os seis casos RED da pausa passaram junto com dois novos testes de widget. `flutter analyze` sem problemas e `flutter test --reporter expanded` com **297 aprovados**. A integração Android inclui falha SQL, nova tentativa e reabertura do arquivo. O roteiro offline ganhou o modo `--run --purchases` para conferir R$ 12,66 e R$ 47,82 após reiniciar o processo.
+
+Para validar no aparelho, adicione Leite com quantidade 3 e preço 4,22. A prévia indica R$ 12,66 e a confirmação soma esse valor à lista. Como exercício, registre Carne com valor direto 47,82 e confira R$ 60,48 após reabrir. A transação equivale a uma unidade de trabalho em C#: ambas as escritas confirmam juntas.
+
+`flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --reporter expanded` passou os **11 cenários** no Samsung. `flutter build apk --debug` gerou o APK de desenvolvimento em `build/app/outputs/flutter-apk/marketlist-f3-07-debug.apk`.

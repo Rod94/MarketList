@@ -41,25 +41,34 @@ final class SqliteShoppingRepository implements ShoppingRepository {
     final db = await _database.open();
     return db.transaction((txn) async {
       await _requireWritableItem(txn, shoppingListId, entry.shoppingItemId);
-      final rows = await txn.query(
-        'purchase_entries',
-        where: 'id = ?',
-        whereArgs: [entry.id],
-        limit: 1,
-      );
-      if (rows.isNotEmpty) {
-        final existing = _entryFromRow(rows.single);
-        if (existing.shoppingItemId != entry.shoppingItemId ||
-            existing.quantity != entry.quantity ||
-            existing.unitPriceCents != entry.unitPriceCents ||
-            existing.directAmountCents != entry.directAmountCents) {
-          throw PurchaseEntryCreationConflict(entry.id);
-        }
-      } else {
-        await txn.insert('purchase_entries', _entryToRow(entry));
-      }
+      await _insertOrReuseEntry(txn, entry);
       return _calculateTransaction(txn, shoppingListId);
     });
+  }
+
+  static Future<void> _insertOrReuseEntry(
+    DatabaseExecutor txn,
+    PurchaseEntry entry, {
+    bool requireExisting = false,
+  }) async {
+    final rows = await txn.query(
+      'purchase_entries',
+      where: 'id = ?',
+      whereArgs: [entry.id],
+      limit: 1,
+    );
+    if (rows.isNotEmpty) {
+      final existing = _entryFromRow(rows.single);
+      if (existing.shoppingItemId != entry.shoppingItemId ||
+          existing.quantity != entry.quantity ||
+          existing.unitPriceCents != entry.unitPriceCents ||
+          existing.directAmountCents != entry.directAmountCents) {
+        throw PurchaseEntryCreationConflict(entry.id);
+      }
+    } else {
+      if (requireExisting) throw PurchaseEntryCreationConflict(entry.id);
+      await txn.insert('purchase_entries', _entryToRow(entry));
+    }
   }
 
   @override
@@ -180,52 +189,92 @@ final class SqliteShoppingRepository implements ShoppingRepository {
       sortOrder: 0,
     );
     final db = await _database.open();
+    return db.transaction(
+      (txn) async => (await _insertOrReuseItem(txn, candidate)).item,
+    );
+  }
+
+  @override
+  Future<ShoppingCalculation> createItemWithPurchase({
+    required String id,
+    required String shoppingListId,
+    required String name,
+    required PurchaseEntry entry,
+  }) async {
+    if (entry.shoppingItemId != id) {
+      throw ArgumentError.value(
+        entry.shoppingItemId,
+        'entry',
+        'Vínculo com outro produto.',
+      );
+    }
+    final candidate = ShoppingItem(
+      id: id,
+      shoppingListId: shoppingListId,
+      name: name,
+      origin: ShoppingItemOrigin.atStore,
+      sortOrder: 0,
+    );
+    final db = await _database.open();
     return db.transaction((txn) async {
-      await _requireList(txn, shoppingListId, writable: true);
-      final rows = await txn.query(
-        'shopping_items',
-        where: 'id = ?',
-        whereArgs: [id],
-        limit: 1,
-      );
-      if (rows.isNotEmpty) {
-        final existing = _itemFromRow(rows.single);
-        if (existing.shoppingListId != shoppingListId ||
-            existing.name != candidate.name ||
-            existing.plannedQuantity != plannedQuantity ||
-            existing.origin != origin) {
-          throw ShoppingItemCreationConflict(id);
-        }
-        if (existing.removedAt != null) throw RemovedShoppingItemException(id);
-        return existing;
-      }
-      final result = await txn.rawQuery(
-        'SELECT MAX(sort_order) AS last_position FROM shopping_items WHERE shopping_list_id = ?',
-        [shoppingListId],
-      );
-      final last = result.single['last_position'] as int?;
-      if (last == 9223372036854775807) {
-        throw StateError('Não há posição representável para outro item.');
-      }
-      final item = ShoppingItem(
-        id: id,
-        shoppingListId: shoppingListId,
-        name: candidate.name,
-        origin: origin,
-        plannedQuantity: plannedQuantity,
-        sortOrder: last == null ? 0 : last + 1,
-      );
-      await txn.insert('shopping_items', {
-        'id': item.id,
-        'shopping_list_id': item.shoppingListId,
-        'name': item.name,
-        'planned_quantity': item.plannedQuantity,
-        'origin': origin == ShoppingItemOrigin.planned ? 'planned' : 'at_store',
-        'sort_order': item.sortOrder,
-        'removed_at_utc': null,
-      });
-      return item;
+      final result = await _insertOrReuseItem(txn, candidate);
+      await _insertOrReuseEntry(txn, entry, requireExisting: !result.created);
+      return _calculateTransaction(txn, shoppingListId);
     });
+  }
+
+  static Future<({ShoppingItem item, bool created})> _insertOrReuseItem(
+    DatabaseExecutor txn,
+    ShoppingItem candidate,
+  ) async {
+    final id = candidate.id;
+    final shoppingListId = candidate.shoppingListId;
+    final plannedQuantity = candidate.plannedQuantity;
+    final origin = candidate.origin;
+    await _requireList(txn, shoppingListId, writable: true);
+    final rows = await txn.query(
+      'shopping_items',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isNotEmpty) {
+      final existing = _itemFromRow(rows.single);
+      if (existing.shoppingListId != shoppingListId ||
+          existing.name != candidate.name ||
+          existing.plannedQuantity != plannedQuantity ||
+          existing.origin != origin) {
+        throw ShoppingItemCreationConflict(id);
+      }
+      if (existing.removedAt != null) throw RemovedShoppingItemException(id);
+      return (item: existing, created: false);
+    }
+    final result = await txn.rawQuery(
+      'SELECT MAX(sort_order) AS last_position FROM shopping_items WHERE shopping_list_id = ?',
+      [shoppingListId],
+    );
+    final last = result.single['last_position'] as int?;
+    if (last == 9223372036854775807) {
+      throw StateError('Não há posição representável para outro item.');
+    }
+    final item = ShoppingItem(
+      id: id,
+      shoppingListId: shoppingListId,
+      name: candidate.name,
+      origin: origin,
+      plannedQuantity: plannedQuantity,
+      sortOrder: last == null ? 0 : last + 1,
+    );
+    await txn.insert('shopping_items', {
+      'id': item.id,
+      'shopping_list_id': item.shoppingListId,
+      'name': item.name,
+      'planned_quantity': item.plannedQuantity,
+      'origin': origin == ShoppingItemOrigin.planned ? 'planned' : 'at_store',
+      'sort_order': item.sortOrder,
+      'removed_at_utc': null,
+    });
+    return (item: item, created: true);
   }
 
   @override

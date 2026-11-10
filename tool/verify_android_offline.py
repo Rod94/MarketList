@@ -68,8 +68,8 @@ class AndroidCheck:
         candidates.sort(key=lambda node: node.get("clickable") != "true")
         self.tap_node(candidates[0])
 
-    def edit(self, index, text):
-        nodes = self.wait_for(lambda nodes: len([node for node in nodes if node.get("class") == "android.widget.EditText"]) == 2)
+    def edit(self, index, text, field_counts=(2,)):
+        nodes = self.wait_for(lambda nodes: len([node for node in nodes if node.get("class") == "android.widget.EditText"]) in field_counts)
         fields = [node for node in nodes if node.get("class") == "android.widget.EditText"]
         fields.sort(key=lambda node: int(re.findall(r"\d+", node["bounds"])[1]))
         self.tap_node(fields[index])
@@ -110,12 +110,16 @@ def main():
     parser.add_argument("--inspect", action="store_true", help="Somente inspeciona controles do MarketList.")
     parser.add_argument("--run", action="store_true", help="Autoriza teste com modo avião/Wi-Fi temporários.")
     parser.add_argument("--items", action="store_true", help="Inclui produtos/quantidades/remoção/ordem da Fase 2.")
+    parser.add_argument("--purchases", action="store_true", help="Verifica compras unitária e direta da Fase 3.")
     options = parser.parse_args()
     if options.inspect == options.run:
         parser.error("Escolha exatamente --inspect ou --run.")
-    if options.items and not options.run:
-        parser.error("--items exige --run.")
-    output = Path(__file__).resolve().parents[1] / "build" / ("offline_verification_f2" if options.items else "offline_verification")
+    if (options.items or options.purchases) and not options.run:
+        parser.error("--items e --purchases exigem --run.")
+    if options.items and options.purchases:
+        parser.error("Escolha --items ou --purchases.")
+    suffix = "_f3" if options.purchases else "_f2" if options.items else ""
+    output = Path(__file__).resolve().parents[1] / "build" / f"offline_verification{suffix}"
     output.mkdir(parents=True, exist_ok=True)
     check = AndroidCheck(options.adb, options.serial, output)
     if options.inspect:
@@ -127,7 +131,8 @@ def main():
             check.adb("shell", "rm", "-f", check.remote_xml, check=False)
         return
 
-    name = f"TesteOffline{'F2' if options.items else 'F1'}_{uuid.uuid4().hex[:8]}"
+    phase = "F3" if options.purchases else "F2" if options.items else "F1"
+    name = f"TesteOffline{phase}_{uuid.uuid4().hex[:8]}"
     report = {"test_list": name, "persisted_after_restart": False, "cleanup_ok": False}
     original_airplane = check.setting("airplane_mode_on")
     original_wifi = check.setting("wifi_on")
@@ -170,9 +175,9 @@ def main():
             check.home_with(name)
             for product, quantity in [("CarneTeste", None), ("LeiteTeste", "5"), ("RemovidoTeste", "2")]:
                 check.tap_label("Adicionar produto")
-                check.edit(0, product)
+                check.edit(0, product, (2, 3))
                 if quantity is not None:
-                    check.edit(1, quantity)
+                    check.edit(1, quantity, (2, 3))
                 check.screenshot("item_form_keyboard.png")
                 check.tap_label("Salvar produto")
                 check.home_with(name)
@@ -180,6 +185,18 @@ def main():
             check.tap_label("Remover produto")
             check.wait_for(lambda nodes: not any(check.has_label(node, "RemovidoTeste") for node in nodes)
                            and not any(node.get("class") == "android.widget.EditText" for node in nodes))
+        if options.purchases:
+            check.tap_label(name)
+            check.home_with(name)
+            for product, quantity, price in [("LeiteTeste", "3", "4,22"), ("CarneTeste", None, "47,82")]:
+                check.tap_label("Adicionar produto")
+                check.edit(0, product, (3,))
+                if quantity is not None:
+                    check.edit(1, quantity, (3,))
+                check.edit(2, price, (3,))
+                check.screenshot("purchase_keyboard.png")
+                check.tap_label("Salvar produto")
+                check.home_with(product)
         original_pid = check.adb("shell", "pidof", PACKAGE)
         if not original_pid:
             raise RuntimeError("Processo inicial não identificado.")
@@ -204,6 +221,13 @@ def main():
             if first >= second:
                 raise RuntimeError("Ordem de cadastro não foi preservada.")
             report.update(items_persisted=True, removed_item_hidden=True, order_preserved=True)
+        if options.purchases:
+            check.tap_label(name)
+            nodes = check.home_with("LeiteTeste")
+            for label in ("CarneTeste", "R$ 12,66", "R$ 47,82", "Total registrado: R$ 60,48"):
+                if not any(check.has_label(node, label) for node in nodes):
+                    raise RuntimeError(f"Dado financeiro não recuperado: {label}")
+            report["purchases_persisted"] = True
         report.update(persisted_after_restart=True, original_pid=original_pid, new_pid=new_pid)
         check.screenshot("after_restart_offline.png")
     except Exception as error:

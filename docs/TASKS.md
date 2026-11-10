@@ -91,7 +91,7 @@
 | F3-04 | SQLite para inserir/atualizar/excluir entradas | CT-022 a CT-027; transações e integridade | **Feito:** migração v3, fotografia transacional e rollback por overflow/erro; 23 novos testes SQLite, regressão 269 aprovados |
 | F3-05 | ViewModel atualiza total após sucesso de persistência | CT-033 a CT-035 e UX-008 | **Feito:** fotografia confirmada separada da prévia; 12 novos testes, regressão 281 aprovados e 8 nativos após desbloqueio |
 | F3-06 | Painel de item existente e `Adicionar outro preço` | UX-020; 3 × 3,50 + 2 × 4,20 = R$ 18,90 | **Feito:** painel/formulário, correção/exclusão, prévia e totais confirmados; 8 novos widgets, regressão 289 e 10 nativos aprovados |
-| F3-07 | Produto espontâneo com quantidade/preço no mesmo formulário | CT-018/CT-019, UX-003/UX-004 | Pendente |
+| F3-07 | Produto espontâneo com quantidade/preço no mesmo formulário | CT-018/CT-019, UX-003/UX-004 | **Feito:** inclusão atômica, prévia, tratamento de falha e 297 testes Flutter aprovados. Evidências no relatório F3 |
 
 **Decisões resolvidas pelo usuário em 10/11/2026:** zero explícito é gratuito (D-028); limite técnico int64 com overflow recusado (D-029); valor direto em item planejado, inclusive caso misto, mantém Quantidade não confirmada e A comprar (D-030). Autorizado seguir da F3 em diante fase por fase, uma tarefa/commit por vez, parando somente quando decisão necessária ou portão de qualidade impedir.
 
@@ -166,12 +166,10 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**F3-06 entregue.** Próxima tarefa pequena: **F3-07 — inclusão rápida de produto com preço opcional**, já autorizada. D-031 permite nomes duplicados sem interrupção; D-032/033 aprovam Desfazer 5 s e tema do sistema com seleção persistida para F4. Continuar fase por fase mantendo tarefa/commit individual.
+**Fase 3 entregue.** Próxima tarefa **F4-01**, lista compacta com estados visuais. D-032 e D-033 orientam a persistência do tema e o Desfazer na Fase 4.
 
-**Estado atual:** Fases 0/1/2 e F3-01 a F3-06 **feitas**; F3-07 em diante **pendentes e autorizadas sequencialmente**. Banco v3; preços existentes já podem ser registrados/corrigidos/excluídos pela UI. Cadastro novo com preço ainda pendente. `AGENTS.md`, bancos, APKs e logs continuam ignorados.
+**Estado atual:** Fases 0 a 3 concluídas. Cadastro e edição de preços disponíveis na interface com banco v3. Evidências e pendências de teste físico constam do relatório da fase.
 
-## Pausa solicitada pelo usuário — 10/11/2026
+## Retomada da pausa — 10/11/2026
 
-Usuário sairá de casa, desconectará o Samsung e desligará o PC; **não continuar desenvolvimento até ele retomar**. Última tarefa concluída/publicada: **F3-06, commit e8d5e40**; 289 testes convencionais e 10 nativos de interface aprovados, APK normal marketlist-f3-06-debug.apk instalado. F3-07 teve somente RED inicial: seis testes novos para inclusão atômica ainda sem API, saída 1 por método ausente. Para deixar os testes na versão aprovada, essas alterações foram guardadas em **build/f3-07-red-tests.patch** (local, ignorado) e o arquivo de teste voltou a HEAD. Ao retomar, reaplicar o patch local e implementar F3-07; se o patch não estiver mais disponível, os seis cenários são: item+entrada juntos; retry concorrente; erro da entrada reverte item; overflow reverte ambos; vínculo errado; nomes duplicados legítimos.
-
-Keep-awake USB temporário foi **restaurado a 0 e confirmado pelo ADB** antes da desconexão; baseline local build/f3-android-session-state.json marcado restored=true. Ao retomar testes físicos, recapturar a configuração atual, não assumir o baseline de outra sessão. Nenhum processo de teste permanece em execução. Sem conclusão fictícia de F3-07 ou da Fase 3. As autorizações e decisões já aprovadas permanecem válidas para a retomada.
+O usuário retomou a partir do commit de pausa 0088dff e autorizou avançar à Fase 4. Os seis testes de inclusão atômica guardados no patch local foram reaplicados na F3-07.

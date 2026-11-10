@@ -29,6 +29,14 @@ abstract interface class ShoppingRepository {
     int? plannedQuantity,
   });
 
+  /// Mantém os dois IDs durante tentativas da mesma inclusão.
+  Future<ShoppingCalculation> createItemWithPurchase({
+    required String id,
+    required String shoppingListId,
+    required String name,
+    required PurchaseEntry entry,
+  });
+
   /// Inclui registros removidos; não representa o filtro visual da compra.
   Future<List<ShoppingItem>> listItems(String shoppingListId);
 

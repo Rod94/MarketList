@@ -36,6 +36,9 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   String? _creationId;
   String _draftName = '';
   String _draftQuantity = '';
+  String _draftPrice = '';
+  String? _quickEntryId;
+  String? _draftPriceError;
   String? _loadError;
   String? _saveError;
   String? _nameError;
@@ -55,6 +58,22 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   ShoppingItem? get editingItem => _editingItem;
   String get draftName => _draftName;
   String get draftQuantity => _draftQuantity;
+  String get draftPrice => _draftPrice;
+  String? get draftPriceError => _draftPriceError;
+  bool get draftHasPrice => _draftPrice.trim().isNotEmpty;
+  int? get quickPreviewCents {
+    try {
+      final price = parseMoneyCents(_draftPrice);
+      if (price == null) return null;
+      final quantity = parsePlannedQuantity(_draftQuantity);
+      return quantity == null ? price : checkedMoneyProduct(quantity, price);
+    } on FormatException {
+      return null;
+    } on RangeError {
+      return null;
+    }
+  }
+
   String? get loadError => _loadError;
   String? get saveError => _saveError;
   String? get nameError => _nameError;
@@ -143,6 +162,13 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     _notify();
   }
 
+  void setDraftPrice(String value) {
+    if (_disposed || _saving) return;
+    _draftPrice = value;
+    _draftPriceError = null;
+    _notify();
+  }
+
   Future<bool> saveDraft() async {
     if (!canEdit) return false;
     _nameError = _draftName.trim().isEmpty
@@ -155,7 +181,18 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     } on FormatException catch (error) {
       _quantityError = error.message;
     }
-    if (_nameError != null || _quantityError != null) {
+    _draftPriceError = null;
+    int? price;
+    if (_editingItem == null) {
+      try {
+        price = parseMoneyCents(_draftPrice);
+      } on FormatException catch (error) {
+        _draftPriceError = error.message;
+      }
+    }
+    if (_nameError != null ||
+        _quantityError != null ||
+        _draftPriceError != null) {
       _notify();
       return false;
     }
@@ -167,6 +204,26 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       final ShoppingItem saved;
       if (editing == null) {
         _creationId ??= _repository.newItemId();
+        if (price != null) {
+          _quickEntryId ??= _repository.newEntryId();
+          final entry = PurchaseEntry(
+            id: _quickEntryId!,
+            shoppingItemId: _creationId!,
+            quantity: quantity,
+            unitPriceCents: quantity == null ? null : price,
+            directAmountCents: quantity == null ? price : null,
+          );
+          final calculation = await _repository.createItemWithPurchase(
+            id: _creationId!,
+            shoppingListId: shoppingList.id,
+            name: _draftName,
+            entry: entry,
+          );
+          if (_disposed) return false;
+          _acceptCalculation(calculation);
+          _resetDraft();
+          return true;
+        }
         saved = await _repository.createItem(
           id: _creationId!,
           shoppingListId: shoppingList.id,
@@ -200,6 +257,13 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       return false;
     } on ShoppingItemCreationConflict {
       _saveError = 'Esta inclusão já foi salva com outros dados. Cancele e atualize os produtos.';
+      return false;
+    } on PurchaseEntryCreationConflict {
+      _saveError = 'Esta inclusão já foi salva com outros dados. Cancele e atualize os produtos.';
+      return false;
+    } on RangeError {
+      _saveError =
+          'O valor ultrapassa o limite da compra. Seus campos foram mantidos.';
       return false;
     } on RemovedShoppingItemException {
       _saveError =
@@ -453,6 +517,9 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     _creationId = null;
     _draftName = '';
     _draftQuantity = '';
+    _draftPrice = '';
+    _quickEntryId = null;
+    _draftPriceError = null;
     _nameError = null;
     _quantityError = null;
     _saveError = null;

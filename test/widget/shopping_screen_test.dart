@@ -32,6 +32,55 @@ void main() {
   }
 
   testWidgets(
+    'F3-07 confirma a prévia somente após salvar e mantém o preço em falha',
+    (tester) async {
+      repository.quickPurchaseHandler = (_, _, _, _) async =>
+          throw StateError('falha');
+      await open(tester);
+      await form(tester);
+      await tester.enterText(find.byKey(const ValueKey('item-name')), 'Leite');
+      await tester.enterText(find.byKey(const ValueKey('item-quantity')), '3');
+      await tester.enterText(find.byKey(const ValueKey('item-price')), '4,22');
+      await tester.pumpAndSettle();
+      expect(find.text('Prévia do subtotal: R\$ 12,66'), findsOneWidget);
+      expect(find.text('Total registrado: R\$ 0,00'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('save-item')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Seus campos foram mantidos'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('item-price')))
+            .controller!
+            .text,
+        '4,22',
+      );
+      expect(repository.items, isEmpty);
+      repository.quickPurchaseHandler = null;
+      await tester.tap(find.byKey(const ValueKey('save-item')));
+      await tester.pumpAndSettle();
+      expect(find.text('Total registrado: R\$ 12,66'), findsOneWidget);
+      expect(repository.items.single.plannedQuantity, isNull);
+      expect(repository.entries.single.quantity, 3);
+    },
+  );
+
+  testWidgets('F3-07 registra valor direto gratuito sem inventar quantidade', (
+    tester,
+  ) async {
+    await open(tester);
+    await form(tester);
+    await tester.enterText(find.byKey(const ValueKey('item-name')), 'Amostra');
+    await tester.enterText(find.byKey(const ValueKey('item-price')), '0,00');
+    await tester.pumpAndSettle();
+    expect(find.text('Valor total (opcional)'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('save-item')));
+    await tester.pumpAndSettle();
+    expect(repository.entries.single.directAmountCents, 0);
+    expect(repository.entries.single.quantity, isNull);
+    expect(find.text('Comprado'), findsOneWidget);
+  });
+
+  testWidgets(
     'F2-05 oculta removidos da carga e remove somente o produto selecionado',
     (tester) async {
       repository.items.addAll([
@@ -194,7 +243,7 @@ void main() {
             .text,
         isEmpty,
       );
-      expect(find.byType(TextField), findsNWidgets(2));
+      expect(find.byType(TextField), findsNWidgets(3));
       await tester.enterText(find.byKey(const ValueKey('item-name')), 'Carne');
       await tester.tap(find.byKey(const ValueKey('save-item')));
       await tester.pumpAndSettle();

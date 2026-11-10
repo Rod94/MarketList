@@ -50,6 +50,42 @@ void main() {
   }
 
   testWidgets(
+    'F3-07 Android: rollback da inclusão rápida e reabertura com preço',
+    (tester) async {
+      await repository.createList(id: 'quick', name: 'Compra rápida');
+      await db.execute("""
+      CREATE TRIGGER fail_quick BEFORE INSERT ON purchase_entries
+      BEGIN SELECT RAISE(ABORT, 'simulated failure'); END
+    """);
+      await openApp(tester);
+      await tester.tap(find.text('Compra rápida'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('add-item')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('item-name')), 'Leite');
+      await tester.enterText(find.byKey(const ValueKey('item-quantity')), '3');
+      await tester.enterText(find.byKey(const ValueKey('item-price')), '4,22');
+      await tester.pumpAndSettle();
+      expect(find.text('Prévia do subtotal: R\$ 12,66'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('save-item')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Seus campos foram mantidos'), findsOneWidget);
+      expect(await db.query('shopping_items'), isEmpty);
+      await db.execute('DROP TRIGGER fail_quick');
+      await tester.tap(find.byKey(const ValueKey('save-item')));
+      await tester.pumpAndSettle();
+      expect(find.text('Total registrado: R\$ 12,66'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await db.close();
+      final database = AppDatabase(path: p.join(directory.path, 'ui.db'));
+      db = await database.open();
+      repository = SqliteShoppingRepository(database);
+      expect((await repository.loadShoppingList('quick')).totalCents, 1266);
+    },
+  );
+
+  testWidgets(
     'F3-06 Android: painel registra dois preços, corrige e exclui sem duplicar',
     (tester) async {
       await repository.createList(id: 'market', name: 'Compra mercado');

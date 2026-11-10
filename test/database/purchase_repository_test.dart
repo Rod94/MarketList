@@ -152,6 +152,125 @@ void main() {
     },
   );
 
+  test(
+    'F3-07: item espontâneo e primeira entrada são confirmados juntos',
+    () async {
+      final result = await repository.createItemWithPurchase(
+        id: 'new',
+        shoppingListId: 'list',
+        name: 'Leite',
+        entry: entry(id: 'quick', item: 'new', quantity: 3, price: 422),
+      );
+      expect(result.totalCents, 1266);
+      final added = result.items.firstWhere((s) => s.item.id == 'new');
+      expect(added.item.origin, ShoppingItemOrigin.atStore);
+      expect(added.item.plannedQuantity, isNull);
+      expect(added.entries.single.quantity, 3);
+    },
+  );
+  test(
+    'F3-07: retry concorrente com mesmos IDs não duplica produto nem compra',
+    () async {
+      Future<Object> add() => repository.createItemWithPurchase(
+        id: 'new',
+        shoppingListId: 'list',
+        name: 'Leite',
+        entry: entry(id: 'quick', item: 'new', quantity: 3, price: 422),
+      );
+      await Future.wait([add(), add()]);
+      expect(
+        (await db.query(
+          'shopping_items',
+          where: 'id = ?',
+          whereArgs: ['new'],
+        )).length,
+        1,
+      );
+      expect((await db.query('purchase_entries')).length, 1);
+    },
+  );
+  test(
+    'F3-07: erro na entrada reverte também o produto e permite retry',
+    () async {
+      await db.execute(
+        '''CREATE TRIGGER fail_quick BEFORE INSERT ON purchase_entries
+      BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END''',
+      );
+      Future<Object> add() => repository.createItemWithPurchase(
+        id: 'new',
+        shoppingListId: 'list',
+        name: 'Leite',
+        entry: entry(id: 'quick', item: 'new', direct: 4782),
+      );
+      await expectLater(add(), throwsA(isA<DatabaseException>()));
+      expect(
+        await db.query('shopping_items', where: 'id = ?', whereArgs: ['new']),
+        isEmpty,
+      );
+      expect(await db.query('purchase_entries'), isEmpty);
+      await db.execute('DROP TRIGGER fail_quick');
+      await add();
+      expect((await repository.loadShoppingList('list')).totalCents, 4782);
+    },
+  );
+  test('F3-07: overflow do total reverte ambas as inclusões', () async {
+    await repository.createPurchaseEntry(
+      shoppingListId: 'list',
+      entry: entry(direct: maxMoneyCents),
+    );
+    await expectLater(
+      repository.createItemWithPurchase(
+        id: 'new',
+        shoppingListId: 'list',
+        name: 'Outro',
+        entry: entry(id: 'quick', item: 'new', direct: 1),
+      ),
+      throwsRangeError,
+    );
+    expect(
+      await db.query('shopping_items', where: 'id = ?', whereArgs: ['new']),
+      isEmpty,
+    );
+    expect((await db.query('purchase_entries')).length, 1);
+  });
+  test('F3-07: entrada de outro ID não pode criar produto parcial', () async {
+    await expectLater(
+      repository.createItemWithPurchase(
+        id: 'new',
+        shoppingListId: 'list',
+        name: 'Outro',
+        entry: entry(),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      await db.query('shopping_items', where: 'id = ?', whereArgs: ['new']),
+      isEmpty,
+    );
+  });
+  test(
+    'D-031: nomes iguais com IDs distintos continuam inclusões legítimas',
+    () async {
+      for (final id in ['new-a', 'new-b']) {
+        await repository.createItemWithPurchase(
+          id: id,
+          shoppingListId: 'list',
+          name: 'Leite',
+          entry: entry(id: 'e-$id', item: id, direct: 100),
+        );
+      }
+      expect(
+        (await db.query(
+          'shopping_items',
+          where: 'name = ?',
+          whereArgs: ['Leite'],
+        )).length,
+        2,
+      );
+      expect((await repository.loadShoppingList('list')).totalCents, 200);
+    },
+  );
+
   test('ID de entrada é UUID v4 e não depende do relógio', () {
     final first = repository.newEntryId();
     final second = repository.newEntryId();

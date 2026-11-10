@@ -19,6 +19,7 @@ class ItemFormSheet extends StatefulWidget {
 class _ItemFormSheetState extends State<ItemFormSheet> {
   late final TextEditingController _name;
   late final TextEditingController _quantity;
+  late final TextEditingController _price;
 
   @override
   void initState() {
@@ -26,12 +27,14 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
     final model = context.read<ShoppingItemsViewModel>();
     _name = TextEditingController(text: model.draftName);
     _quantity = TextEditingController(text: model.draftQuantity);
+    _price = TextEditingController(text: model.draftPrice);
   }
 
   @override
   void dispose() {
     _name.dispose();
     _quantity.dispose();
+    _price.dispose();
     super.dispose();
   }
 
@@ -162,6 +165,8 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
   @override
   Widget build(BuildContext context) {
     final model = context.watch<ShoppingItemsViewModel>();
+    final adding = model.editingItem == null;
+    final preview = adding ? model.quickPreviewCents : null;
     return PopScope(
       canPop: !model.isSaving,
       child: SafeArea(
@@ -208,16 +213,46 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
                         controller: _quantity,
                         enabled: !model.isSaving && !model.readOnly,
                         keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.done,
+                        textInputAction: adding
+                            ? TextInputAction.next
+                            : TextInputAction.done,
                         onChanged: model.setDraftQuantity,
-                        onSubmitted: (_) => _save(),
+                        onSubmitted: adding ? null : (_) => _save(),
                         decoration: InputDecoration(
-                          labelText: 'Quantidade planejada (opcional)',
+                          labelText: adding && model.draftHasPrice
+                              ? 'Quantidade comprada (opcional)'
+                              : 'Quantidade planejada (opcional)',
                           hintText: 'Ex.: 5',
                           errorText: model.quantityError,
                           errorMaxLines: 4,
                         ),
                       ),
+                      if (adding) ...[
+                        const SizedBox(height: AppSpacing.medium),
+                        TextField(
+                          key: const ValueKey('item-price'),
+                          controller: _price,
+                          enabled: !model.isSaving && !model.readOnly,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          textInputAction: TextInputAction.done,
+                          onChanged: model.setDraftPrice,
+                          onSubmitted: (_) => _save(),
+                          decoration: InputDecoration(
+                            labelText: model.draftQuantity.trim().isEmpty
+                                ? 'Valor total (opcional)'
+                                : 'Preço unitário (opcional)',
+                            prefixText: 'R\$ ',
+                            errorText: model.draftPriceError,
+                            errorMaxLines: 3,
+                          ),
+                        ),
+                        if (preview != null)
+                          Text(
+                            'Prévia do subtotal: ${formatMoneyCents(preview)}',
+                          ),
+                      ],
                       if (model.editingItem != null) _entries(model),
                       if (model.isSaving)
                         LinearProgressIndicator(
