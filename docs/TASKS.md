@@ -169,3 +169,9 @@
 **F3-06 entregue.** Próxima tarefa pequena: **F3-07 — inclusão rápida de produto com preço opcional**, já autorizada. D-031 permite nomes duplicados sem interrupção; D-032/033 aprovam Desfazer 5 s e tema do sistema com seleção persistida para F4. Continuar fase por fase mantendo tarefa/commit individual.
 
 **Estado atual:** Fases 0/1/2 e F3-01 a F3-06 **feitas**; F3-07 em diante **pendentes e autorizadas sequencialmente**. Banco v3; preços existentes já podem ser registrados/corrigidos/excluídos pela UI. Cadastro novo com preço ainda pendente. `AGENTS.md`, bancos, APKs e logs continuam ignorados.
+
+## Pausa solicitada pelo usuário — 10/11/2026
+
+Usuário sairá de casa, desconectará o Samsung e desligará o PC; **não continuar desenvolvimento até ele retomar**. Última tarefa concluída/publicada: **F3-06, commit e8d5e40**; 289 testes convencionais e 10 nativos de interface aprovados, APK normal marketlist-f3-06-debug.apk instalado. F3-07 teve somente RED inicial: seis testes novos para inclusão atômica ainda sem API, saída 1 por método ausente. Para deixar os testes na versão aprovada, essas alterações foram guardadas em **build/f3-07-red-tests.patch** (local, ignorado) e o arquivo de teste voltou a HEAD. Ao retomar, reaplicar o patch local e implementar F3-07; se o patch não estiver mais disponível, os seis cenários são: item+entrada juntos; retry concorrente; erro da entrada reverte item; overflow reverte ambos; vínculo errado; nomes duplicados legítimos.
+
+Keep-awake USB temporário foi **restaurado a 0 e confirmado pelo ADB** antes da desconexão; baseline local build/f3-android-session-state.json marcado restored=true. Ao retomar testes físicos, recapturar a configuração atual, não assumir o baseline de outra sessão. Nenhum processo de teste permanece em execução. Sem conclusão fictícia de F3-07 ou da Fase 3. As autorizações e decisões já aprovadas permanecem válidas para a retomada.
