@@ -4,6 +4,8 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../domain/models/shopping_item.dart';
 import '../domain/models/shopping_list.dart';
+import '../domain/models/purchase_entry.dart';
+import '../domain/shopping_calculator.dart';
 import '../domain/shopping_repository.dart';
 
 final class SqliteShoppingRepository implements ShoppingRepository {
@@ -18,6 +20,148 @@ final class SqliteShoppingRepository implements ShoppingRepository {
 
   @override
   String newItemId() => const Uuid().v4();
+
+  @override
+  String newEntryId() => const Uuid().v4();
+
+  @override
+  Future<ShoppingCalculation> loadShoppingList(String shoppingListId) async {
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireList(txn, shoppingListId);
+      return _calculateTransaction(txn, shoppingListId);
+    });
+  }
+
+  @override
+  Future<ShoppingCalculation> createPurchaseEntry({
+    required String shoppingListId,
+    required PurchaseEntry entry,
+  }) async {
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireWritableItem(txn, shoppingListId, entry.shoppingItemId);
+      final rows = await txn.query(
+        'purchase_entries',
+        where: 'id = ?',
+        whereArgs: [entry.id],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        final existing = _entryFromRow(rows.single);
+        if (existing.shoppingItemId != entry.shoppingItemId ||
+            existing.quantity != entry.quantity ||
+            existing.unitPriceCents != entry.unitPriceCents ||
+            existing.directAmountCents != entry.directAmountCents) {
+          throw PurchaseEntryCreationConflict(entry.id);
+        }
+      } else {
+        await txn.insert('purchase_entries', _entryToRow(entry));
+      }
+      return _calculateTransaction(txn, shoppingListId);
+    });
+  }
+
+  @override
+  Future<ShoppingCalculation> updatePurchaseEntry({
+    required String shoppingListId,
+    required PurchaseEntry entry,
+  }) async {
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireWritableItem(txn, shoppingListId, entry.shoppingItemId);
+      final changed = await txn.update(
+        'purchase_entries',
+        {
+          'quantity': entry.quantity,
+          'unit_price_cents': entry.unitPriceCents,
+          'direct_amount_cents': entry.directAmountCents,
+        },
+        where: 'id = ? AND shopping_item_id = ?',
+        whereArgs: [entry.id, entry.shoppingItemId],
+      );
+      if (changed != 1) throw PurchaseEntryNotFoundException(entry.id);
+      return _calculateTransaction(txn, shoppingListId);
+    });
+  }
+
+  @override
+  Future<ShoppingCalculation> removePurchaseEntry({
+    required String shoppingListId,
+    required String shoppingItemId,
+    required String entryId,
+  }) async {
+    _validateId(entryId, 'entryId');
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireWritableItem(txn, shoppingListId, shoppingItemId);
+      final removed = await txn.delete(
+        'purchase_entries',
+        where: 'id = ? AND shopping_item_id = ?',
+        whereArgs: [entryId, shoppingItemId],
+      );
+      if (removed != 1) throw PurchaseEntryNotFoundException(entryId);
+      return _calculateTransaction(txn, shoppingListId);
+    });
+  }
+
+  static Future<void> _requireWritableItem(
+    DatabaseExecutor txn,
+    String listId,
+    String itemId,
+  ) async {
+    await _requireList(txn, listId, writable: true);
+    _validateId(itemId, 'shoppingItemId');
+    final rows = await txn.query(
+      'shopping_items',
+      where: 'id = ? AND shopping_list_id = ?',
+      whereArgs: [itemId, listId],
+      limit: 1,
+    );
+    if (rows.isEmpty) throw ShoppingItemNotFoundException(itemId);
+    final item = _itemFromRow(rows.single);
+    if (item.removedAt != null) throw RemovedShoppingItemException(itemId);
+  }
+
+  static Future<ShoppingCalculation> _calculateTransaction(
+    DatabaseExecutor txn,
+    String listId,
+  ) async {
+    final items = await txn.query(
+      'shopping_items',
+      where: 'shopping_list_id = ?',
+      whereArgs: [listId],
+    );
+    final entries = await txn.rawQuery(
+      '''
+      SELECT e.* FROM purchase_entries e
+      JOIN shopping_items i ON i.id = e.shopping_item_id
+      WHERE i.shopping_list_id = ? ORDER BY e.id
+    ''',
+      [listId],
+    );
+    return calculateShoppingList(
+      shoppingListId: listId,
+      items: items.map(_itemFromRow),
+      entries: entries.map(_entryFromRow),
+    );
+  }
+
+  static Map<String, Object?> _entryToRow(PurchaseEntry entry) => {
+    'id': entry.id,
+    'shopping_item_id': entry.shoppingItemId,
+    'quantity': entry.quantity,
+    'unit_price_cents': entry.unitPriceCents,
+    'direct_amount_cents': entry.directAmountCents,
+  };
+
+  static PurchaseEntry _entryFromRow(Map<String, Object?> row) => PurchaseEntry(
+    id: row['id'] as String,
+    shoppingItemId: row['shopping_item_id'] as String,
+    quantity: row['quantity'] as int?,
+    unitPriceCents: row['unit_price_cents'] as int?,
+    directAmountCents: row['direct_amount_cents'] as int?,
+  );
 
   @override
   Future<ShoppingItem> createItem({

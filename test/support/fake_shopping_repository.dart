@@ -1,5 +1,7 @@
 import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
+import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
+import 'package:market_list/features/shopping/domain/shopping_calculator.dart';
 import 'package:market_list/features/shopping/domain/shopping_repository.dart';
 
 class FakeShoppingRepository implements ShoppingRepository {
@@ -43,6 +45,29 @@ class FakeShoppingRepository implements ShoppingRepository {
 
   @override
   String newItemId() => 'fake-item-${++itemIdCalls}';
+
+  @override
+  String newEntryId() =>
+      throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  @override
+  Future<ShoppingCalculation> loadShoppingList(String shoppingListId) =>
+      throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  @override
+  Future<ShoppingCalculation> createPurchaseEntry({
+    required String shoppingListId,
+    required PurchaseEntry entry,
+  }) => throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  @override
+  Future<ShoppingCalculation> updatePurchaseEntry({
+    required String shoppingListId,
+    required PurchaseEntry entry,
+  }) => throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  @override
+  Future<ShoppingCalculation> removePurchaseEntry({
+    required String shoppingListId,
+    required String shoppingItemId,
+    required String entryId,
+  }) => throw UnimplementedError('Entradas ainda não usadas neste fake.');
 
   @override
   Future<ShoppingItem> createItem({

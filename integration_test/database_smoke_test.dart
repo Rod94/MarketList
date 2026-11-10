@@ -4,8 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:market_list/core/database/app_database.dart';
 import 'package:market_list/core/database/migrations/v1.dart';
+import 'package:market_list/core/database/migrations/v2.dart';
+import 'package:market_list/core/money/money.dart';
 import 'package:market_list/features/shopping/data/sqlite_shopping_repository.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
+import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
 import 'package:market_list/features/shopping/domain/shopping_repository.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -222,7 +225,7 @@ void main() {
       await db.insert('shopping_lists', expected);
       await db.close();
       db = await openApp();
-      expect(await db.getVersion(), 2);
+      expect(await db.getVersion(), AppDatabase.schemaVersion);
       expect((await db.query('shopping_lists')).single, expected);
       expect(await db.query('shopping_items'), isEmpty);
       await db.close();
@@ -259,7 +262,7 @@ void main() {
     await db.execute('DROP INDEX shopping_items_by_list_sort_order');
     await db.close();
     db = await openApp();
-    expect(await db.getVersion(), 2);
+    expect(await db.getVersion(), AppDatabase.schemaVersion);
     expect(await db.query('shopping_lists'), before);
   });
 
@@ -403,6 +406,170 @@ void main() {
       );
       expect((await repository.listActiveLists()).length, 2);
       expect((await db.query('test_child')).single['list_id'], 'preserved');
+    },
+  );
+
+  testWidgets(
+    'F3-04 Android: v2 migra sem perder lista, quantidade ausente ou remoção',
+    (tester) async {
+      var db = await openRaw(
+        version: 2,
+        onCreate: (db, _) async {
+          await createSchemaV1(db);
+          await createSchemaV2(db);
+        },
+      );
+      await db.insert('shopping_lists', {
+        'id': 'old',
+        'name': 'Anterior',
+        'status': 'active',
+        'created_at_utc': '2026-11-09T12:00:00Z',
+      });
+      final item = <String, Object?>{
+        'id': 'item',
+        'shopping_list_id': 'old',
+        'name': 'Carne',
+        'planned_quantity': null,
+        'origin': 'planned',
+        'sort_order': 0,
+        'removed_at_utc': '2026-11-09T14:00:00Z',
+      };
+      await db.insert('shopping_items', item);
+      final lists = await db.query('shopping_lists');
+      await db.close();
+      db = await openApp();
+      expect(await db.getVersion(), 3);
+      expect(await db.query('shopping_lists'), lists);
+      expect((await db.query('shopping_items')).single, item);
+      expect(await db.query('purchase_entries'), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'F3-04 Android: falha de v3 preserva v2 e rollback permite retry',
+    (tester) async {
+      var db = await openRaw(
+        version: 2,
+        onCreate: (db, _) async {
+          await createSchemaV1(db);
+          await createSchemaV2(db);
+        },
+      );
+      await db.insert('shopping_lists', {
+        'id': 'old',
+        'name': 'Anterior',
+        'status': 'active',
+        'created_at_utc': '2026-11-09T12:00:00Z',
+      });
+      final before = await db.query('shopping_lists');
+      await db.execute(
+        'CREATE INDEX purchase_entries_by_item ON shopping_items(name)',
+      );
+      await db.close();
+      await expectLater(appDatabase.open(), throwsA(isA<DatabaseException>()));
+      db = await openRaw();
+      expect(await db.getVersion(), 2);
+      expect(await db.query('shopping_lists'), before);
+      expect(
+        await db.rawQuery('SELECT name FROM sqlite_master WHERE name = ?', [
+          'purchase_entries',
+        ]),
+        isEmpty,
+      );
+      await db.execute('DROP INDEX purchase_entries_by_item');
+      await db.close();
+      db = await openApp();
+      expect(await db.getVersion(), 3);
+      expect(await db.query('shopping_lists'), before);
+    },
+  );
+
+  testWidgets(
+    'F3-04 Android: entradas corrigidas/excluídas, reabertura e overflow atômico',
+    (tester) async {
+      var db = await openApp();
+      final repository = SqliteShoppingRepository(appDatabase);
+      await repository.createList(id: 'list', name: 'Compra');
+      await repository.createItem(
+        id: 'soap',
+        shoppingListId: 'list',
+        name: 'Sabonete',
+        plannedQuantity: 5,
+        origin: ShoppingItemOrigin.planned,
+      );
+      final first = PurchaseEntry(
+        id: 'first',
+        shoppingItemId: 'soap',
+        quantity: 3,
+        unitPriceCents: 350,
+      );
+      await Future.wait([
+        repository.createPurchaseEntry(shoppingListId: 'list', entry: first),
+        repository.createPurchaseEntry(shoppingListId: 'list', entry: first),
+      ]);
+      var result = await repository.createPurchaseEntry(
+        shoppingListId: 'list',
+        entry: PurchaseEntry(
+          id: 'second',
+          shoppingItemId: 'soap',
+          quantity: 2,
+          unitPriceCents: 420,
+        ),
+      );
+      expect(result.totalCents, 1890);
+      result = await repository.updatePurchaseEntry(
+        shoppingListId: 'list',
+        entry: PurchaseEntry(
+          id: 'second',
+          shoppingItemId: 'soap',
+          directAmountCents: 100,
+        ),
+      );
+      expect(result.totalCents, 1150);
+      result = await repository.removePurchaseEntry(
+        shoppingListId: 'list',
+        shoppingItemId: 'soap',
+        entryId: 'second',
+      );
+      expect(result.totalCents, 1050);
+      await expectLater(
+        repository.createPurchaseEntry(
+          shoppingListId: 'list',
+          entry: PurchaseEntry(
+            id: 'overflow',
+            shoppingItemId: 'soap',
+            directAmountCents: maxMoneyCents,
+          ),
+        ),
+        throwsRangeError,
+      );
+      expect((await db.query('purchase_entries')).length, 1);
+      await db.close();
+      db = await openApp();
+      expect((await repository.loadShoppingList('list')).totalCents, 1050);
+      await db.update(
+        'shopping_lists',
+        {
+          'status': 'finalized',
+          'finalized_at_utc': DateTime.now().toUtc().toIso8601String(),
+          'finalized_registered_total_cents': 1050,
+        },
+        where: 'id = ?',
+        whereArgs: ['list'],
+      );
+      await expectLater(
+        repository.updatePurchaseEntry(shoppingListId: 'list', entry: first),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      await expectLater(
+        repository.removePurchaseEntry(
+          shoppingListId: 'list',
+          shoppingItemId: 'soap',
+          entryId: 'first',
+        ),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      expect((await repository.loadShoppingList('list')).totalCents, 1050);
     },
   );
 }

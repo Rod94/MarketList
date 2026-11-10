@@ -434,3 +434,7 @@ core/money/money.dart contém funções puras de parsing/formatação e operaç�
 F3-02 introduziu PurchaseEntry puro/imutável, com exclusividade dos modos e subtotalCents derivado/verificado na construção. Não aceita subtotal fornecido, estado visual, marca ou serialização no domínio. Repositório/banco/UI ainda não usam entradas.
 
 F3-03 introduziu calculateShoppingList, ShoppingCalculation e ItemPurchaseSummary no domínio. Fotografia ordenada/imutável agrupa entradas por item, verifica IDs/vínculos/limites e deriva estados/quantidades. Total exclui removidos sem apagar suas entradas. Fonte para futuros repositório/ViewModel, sem armazenar totais/estados ativos redundantes.
+
+## 23. Entradas SQLite — F3-04, 10/11/2026
+
+AppDatabase abre v3 e aplica v1/v2/v3 incrementalmente. Purchase_entries guarda somente campos de PurchaseEntry, sem subtotal/estado duplicado, com FK/cascade e índice. O repositório mapeia dados e cria/edita/exclui em transações com guarda de lista ativa/item não removido. Retorna ShoppingCalculation calculada dentro da mesma transação, após checar limites; Future só conclui após commit. Erro no cálculo ou SQL reverte a escrita inteira. loadShoppingList lê itens/entradas consistentemente e inclui tombstones no domínio, que os exclui do total. Fake de UI ainda não implementa essas operações até a ligação F3-05.

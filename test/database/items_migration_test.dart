@@ -85,7 +85,7 @@ void main() {
     );
     await db.close();
     db = await open();
-    expect(await db.getVersion(), 2);
+    expect(await db.getVersion(), AppDatabase.schemaVersion);
     expect(await db.query('shopping_lists', orderBy: 'id'), before);
     expect(
       await db.rawQuery(
@@ -101,7 +101,7 @@ void main() {
     expect(await db.query('shopping_lists', orderBy: 'id'), before);
   });
 
-  test('instalação nova e upgrade geram o mesmo esquema v2', () async {
+  test('instalação nova e upgrade geram o mesmo esquema atual', () async {
     var db = await open();
     final freshSchema = await db.rawQuery(
       "SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name",
@@ -140,7 +140,7 @@ void main() {
     await db.execute('DROP INDEX shopping_items_by_list_sort_order');
     await db.close();
     db = await open();
-    expect(await db.getVersion(), 2);
+    expect(await db.getVersion(), AppDatabase.schemaVersion);
     expect((await db.query('shopping_lists')).single, finalized);
   });
 

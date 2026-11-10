@@ -471,3 +471,11 @@ purchase_entry_test.dart: **18 novos testes** de modos exclusivos, valores/quant
 shopping_calculator_test.dart: **22 novos testes**, cobrindo exemplos 1890/1266/4782→7938 centavos, pendente/parcial/completo/excedido, zero gratuito, direto/misto com quantidade não confirmada, removido fora do total, correção/exclusão de entrada, ordem/imutabilidade, IDs/vínculos inválidos e overflow monetário/de quantidade.
 
 `flutter test test/unit/shopping_calculator_test.dart --reporter expanded` RED saiu 1 por arquivo/tipos ausentes. Primeira análise parou em 1 aviso de chaves em if; corrigido. Análise seguinte sem problemas. `dart format` ajustou os 2 arquivos novos; `flutter test --reporter expanded`: **246 aprovados/0 falhas**, saída 0, build/f3-03-regression.log. Casos CT/FIN de finalização/histórico permanecem cobertos apenas no domínio matemático aplicável, não como fluxo inteiro. Sem banco/UI novos ou testes Android nesta tarefa.
+
+## 26. F3-04 — entradas persistidas e migração v3, 10/11/2026
+
+purchase_repository_test.dart: **18 novos testes** de idempotência/concorrência, correção/exclusão, modo trocado com nulls, vínculo, finalizada/removido, gratuito, total/quantidade, rollback SQL/overflow/cascade e reabertura. entries_migration_test.dart: **5 novos testes** de preservação v2, rollback/retry, esquema novo/upgrade idêntico e CHECK/FK/ID/cascade reais. Testes anteriores conferem versão atual/terceira tabela, preservando asserções de dados; v1/v2 não mudaram.
+
+RED saiu 1 por APIs ausentes. `dart format .`: 48 arquivos, 3 ajustados nessa execução após formatação inicial do código. `flutter analyze`: sem problemas. Primeiro GREEN do repositório: **16 aprovados**. Primeira regressão: **267 aprovados**; após 2 novos cenários de concorrência extrema/cascade, `flutter test --reporter expanded`: **269 aprovados/0 falhas**, saída 0, build/f3-04-regression-final.log. Resultados nativos/APK no relatório da fase. Ainda sem UI de preços.
+
+F3-04 Android: database_smoke_test com --no-uninstall/-d RXCY300NZZH/--verbose → **13 aprovados**; app_smoke_test com mesmas flags → **7 aprovados**. Logs build/f3-04-android-db.log e f3-04-android-ui.log. Build debug aprovado em 12,5 s; APK normal F3-04 instalado/aberto com Success/Status: ok. Sem uso de banco normal pelos testes. A verificação final de formatação abrange 48 arquivos Dart.

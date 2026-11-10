@@ -1,5 +1,7 @@
 import 'models/shopping_list.dart';
 import 'models/shopping_item.dart';
+import 'models/purchase_entry.dart';
+import 'shopping_calculator.dart';
 
 abstract interface class ShoppingRepository {
   /// Gere uma vez por inclusão e reutilize o ID nas tentativas dessa operação.
@@ -40,6 +42,37 @@ abstract interface class ShoppingRepository {
 
   /// Marca remoção lógica; false se item ausente/removido. Recusa finalizada.
   Future<bool> removeItem({required String id, required String shoppingListId});
+
+  String newEntryId();
+  Future<ShoppingCalculation> loadShoppingList(String shoppingListId);
+  Future<ShoppingCalculation> createPurchaseEntry({
+    required String shoppingListId,
+    required PurchaseEntry entry,
+  });
+  Future<ShoppingCalculation> updatePurchaseEntry({
+    required String shoppingListId,
+    required PurchaseEntry entry,
+  });
+  Future<ShoppingCalculation> removePurchaseEntry({
+    required String shoppingListId,
+    required String shoppingItemId,
+    required String entryId,
+  });
+}
+
+final class PurchaseEntryCreationConflict implements Exception {
+  const PurchaseEntryCreationConflict(this.id);
+  final String id;
+  @override
+  String toString() =>
+      'O identificador já pertence a uma entrada com outros dados.';
+}
+
+final class PurchaseEntryNotFoundException implements Exception {
+  const PurchaseEntryNotFoundException(this.id);
+  final String id;
+  @override
+  String toString() => 'A entrada não foi encontrada neste produto.';
 }
 
 final class ShoppingListNotFoundException implements Exception {

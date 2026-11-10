@@ -12,6 +12,8 @@ Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e 
 
 **F3-03 concluída:** calculadora pura de subtotais/total e estados, incluindo gratuito, parcial e quantidade não confirmada. Removidos não somam. **246 testes aprovados**, análise sem problemas. Próxima F3-04, persistência de entradas; preços ainda não disponíveis na interface.
 
+**F3-04:** banco v3 e repositório de entradas, com correção/exclusão, fotografia confirmada e rollback por erro/overflow. **269 testes aprovados**, análise sem problemas. Preços ainda não ligados à UI; próxima F3-05. APKs antigos v1/v2 recusam banco v3, sem apagar dados.
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.
@@ -48,7 +50,7 @@ flutter test integration_test --no-uninstall -d ID_ANDROID
 flutter build apk --debug
 ```
 
-O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-phase-2-debug.apk` na mesma pasta, compatível com o esquema v2. Artefatos identificados anteriores foram preservados. Após abrir v2, não use APK antigo v1 como rollback: ele recusará a versão superior, sem apagar dados. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
+O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-f3-04-debug.apk` na mesma pasta, compatível com esquema v3. Sua UI ainda é de planejamento. Artefatos anteriores foram preservados. Após abrir v3, APKs antigos v1/v2 recusam a versão superior; não servem como rollback. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
 
 Use `--no-uninstall` na integração: o Flutter 3.47.9 desinstala o pacote por padrão ao encerrar o teste. A opção preserva a instalação e seus dados; ao terminar, gere/instale o APK normal para substituir a variante de teste. Os testes de banco/repositório usam exclusivamente arquivos temporários próprios.
 
@@ -88,6 +90,8 @@ lib/
       app_database.dart         # Abertura/versão e configuração da conexão
       migrations/v1.dart        # Somente tabela de listas e índice
       migrations/v2.dart        # Tabela de itens, FK/cascade e posição única
+      migrations/v3.dart        # Entradas de compra e proteção de integridade
+    money/money.dart            # Conversão e operações exatas verificadas
   features/shopping/presentation/screens/
     shopping_lists_screen.dart  # Tela inicial e confirmação de exclusão
     shopping_screen.dart        # Produtos da lista e conjunto visível
@@ -102,6 +106,7 @@ lib/
   features/shopping/domain/models/
     shopping_list.dart          # Modelo imutável, com validação e datas UTC
     shopping_item.dart          # Modelo puro; quantidade planejada opcional
+    purchase_entry.dart         # Unidade × preço OU valor direto
   features/shopping/domain/
     shopping_repository.dart    # Contrato Dart puro e erros de operação
   features/shopping/data/
@@ -121,7 +126,7 @@ Não há diretórios vazios antecipando banco, dinheiro, checkout ou histórico.
 
 ## Documentação e escopo
 
-Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Autorizado prosseguir da F3 em diante fase por fase; F3-01 entregue, próxima F3-02. Preço zero/limites e quantidade não confirmada foram aprovados pelo usuário. Cada tarefa concluída tem commit/envio individual. Questões abertas ainda exigem decisão no momento indicado em DECISIONS.
+Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Autorizado prosseguir da F3 em diante fase por fase; F3-01 a F3-04 entregues, próxima F3-05. Preço zero/limites e quantidade não confirmada foram aprovados pelo usuário. Cada tarefa concluída tem commit/envio individual. Questões abertas ainda exigem decisão no momento indicado em DECISIONS.
 
 `AGENTS.md` contém instruções locais, está no `.gitignore` por escolha do usuário e não é enviado ao GitHub. A documentação em `docs/` é versionada.
 

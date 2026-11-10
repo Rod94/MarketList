@@ -67,38 +67,36 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test(
-    'F1-02/F2-02: cria versão atual com listas e itens, sem tabelas futuras',
-    () async {
-      final db = await openApp();
+  test('F1/F2/F3: cria versão atual com listas, itens e entradas', () async {
+    final db = await openApp();
 
-      expect(await db.getVersion(), AppDatabase.schemaVersion);
-      final tables = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type = ? AND name NOT LIKE 'sqlite_%'",
-        ['table'],
-      );
-      expect(tables.map((row) => row['name']), [
-        'shopping_lists',
-        'shopping_items',
-      ]);
-      final columns = await db.rawQuery('PRAGMA table_info(shopping_lists)');
-      expect(columns.map((row) => row['name']), [
-        'id',
-        'name',
-        'status',
-        'created_at_utc',
-        'finalized_at_utc',
-        'budget_cents',
-        'finalized_registered_total_cents',
-        'checkout_paid_cents',
-      ]);
-      final indexes = await db.rawQuery('PRAGMA index_list(shopping_lists)');
-      expect(
-        indexes.map((row) => row['name']),
-        contains('shopping_lists_by_status_created_at'),
-      );
-    },
-  );
+    expect(await db.getVersion(), AppDatabase.schemaVersion);
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = ? AND name NOT LIKE 'sqlite_%'",
+      ['table'],
+    );
+    expect(tables.map((row) => row['name']), [
+      'shopping_lists',
+      'shopping_items',
+      'purchase_entries',
+    ]);
+    final columns = await db.rawQuery('PRAGMA table_info(shopping_lists)');
+    expect(columns.map((row) => row['name']), [
+      'id',
+      'name',
+      'status',
+      'created_at_utc',
+      'finalized_at_utc',
+      'budget_cents',
+      'finalized_registered_total_cents',
+      'checkout_paid_cents',
+    ]);
+    final indexes = await db.rawQuery('PRAGMA index_list(shopping_lists)');
+    expect(
+      indexes.map((row) => row['name']),
+      contains('shopping_lists_by_status_created_at'),
+    );
+  });
 
   test(
     'F1-02: chaves estrangeiras são habilitadas e realmente aplicadas',
