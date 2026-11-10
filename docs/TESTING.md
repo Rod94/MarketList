@@ -453,3 +453,11 @@ Execução final real:
 JSON real: lista própria `TesteOfflineF2_11924b48`, PID **17532→19921**, offline_confirmed/items_persisted/removed_item_hidden/order_preserved/persisted_after_restart/cleanup_ok/network_settings_restored/screen_setting_restored **true**. Modo avião **0→1→0**, Wi-Fi **1→0→1**, stay-on restaurado **0**; nova inspeção confirmou rede padrão **251**. Só a lista própria foi excluída; nenhuma tabela/banco foi apagada/resetada. Evidências em build/offline_verification_f2, separadas da evidência F1.
 
 Capturas de teclado e após reinício foram inspecionadas: ações acessíveis acima do IME real, nomes/quantidades legíveis em AMOLED e removido ausente. Não é auditoria completa de contraste/TalkBack. Resultado final: **189 convencionais + 17 nativos + 1 E2E offline aprovados**. Sem build iOS/release, preços/compra/finalização/histórico. Interrupções antigas do runner permanecem documentadas como históricas; execuções finais desta entrega passaram sem relaxar expectativas.
+
+## 23. F3-01 — moeda exata e limites, 10/11/2026
+
+Decisões D-028/029/030 aprovadas pelo usuário antes da implementação. money_test.dart acrescentou **17 testes**: parsing/roundtrip, zero versus ausência, 11 formatos/limites inválidos, formatação negativa/int64 mínimo, CT-026 e produto/soma sem overflow. Métodos puros, sem Flutter no domínio.
+
+RED: `flutter test test/unit/money_test.dart --reporter expanded` saiu 1 por arquivo/métodos ausentes, sem asserções. `dart format` processou 3 arquivos, ajustou 2; `flutter analyze` passou sem problemas. Primeira regressão: **205 aprovados/1 falha** devido à mudança indevida de mensagem do orçamento; mensagem original restaurada sem alterar o teste. `flutter test --reporter expanded` seguinte: **206 aprovados/0 falhas**, saída 0, build/f3-01-regression-final.log.
+
+Orçamento delega ao conversor e todos os 10 testes anteriores/fluxos widget continuam. Não houve banco, UI nova, build APK ou teste Android nesta tarefa; resultados nativos F2 são históricos. Novos cenários aprovados de produto gratuito/quantidade não confirmada serão exercitados no modelo/calculadora/UI nas tarefas seguintes, sem alegar compra implementada pelo parser.

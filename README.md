@@ -6,6 +6,8 @@ Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e 
 
 **Fases 0, 1 e 2 concluídas:** quantidade ausente permanece null; edição mantém identidade/posição; remoção lógica oculta o produto somente após persistir. Erro mantém os campos e retry reutiliza o ID. Listas finalizadas são protegidas no repositório. Banco v2 migra listas v1 sem reset. Regressão final: **189 testes convencionais, 17 testes nativos Android e 1 reinício offline com produtos aprovados**, análise sem problemas. Consulte os comandos, evidências e limites no [relatório da Fase 2](docs/PHASE_2_REPORT.md).
 
+**F3-01 concluída:** conversor puro de moeda, preço zero distinto de ausência e proteção de soma/produto contra overflow. **206 testes aprovados**, análise sem problemas. Orçamento compartilha o conversor sem mudar sua experiência. UI de preços ainda não implementada. Progresso em [PHASE_3_REPORT.md](docs/PHASE_3_REPORT.md).
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.
@@ -115,7 +117,7 @@ Não há diretórios vazios antecipando banco, dinheiro, checkout ou histórico.
 
 ## Documentação e escopo
 
-Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Fase 3 não iniciada; F3-01 depende de autorização e da decisão de preço zero/limites. Cada tarefa concluída a partir da F2-01 tem commit e envio ao GitHub, conforme orientação do usuário. Regras aprovadas permanecem preservadas.
+Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Autorizado prosseguir da F3 em diante fase por fase; F3-01 entregue, próxima F3-02. Preço zero/limites e quantidade não confirmada foram aprovados pelo usuário. Cada tarefa concluída tem commit/envio individual. Questões abertas ainda exigem decisão no momento indicado em DECISIONS.
 
 `AGENTS.md` contém instruções locais, está no `.gitignore` por escolha do usuário e não é enviado ao GitHub. A documentação em `docs/` é versionada.
 

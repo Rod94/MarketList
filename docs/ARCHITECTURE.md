@@ -426,3 +426,7 @@ Fluxo: toque na lista → Provider cria ViewModel → carga SQLite → tela; Adi
 F2-04 acrescentou `ShoppingItem.compareBySortOrder` e ordenação de cópias na carga/cache do ViewModel. Banco mantém posições; UI usa chaves por ID. Nome/quantidade não entram no comparador. Projeção de removidos permanece para F2-05.
 
 F2-05 liga a marca de remoção já persistida à projeção `visibleItems`, que ShoppingScreen apresenta. ItemFormSheet compartilha a instância do ViewModel e retorna enum de sucesso/removido; cancelar não retorna resultado. Remoção/edição/inclusão compartilham o bloqueio de operação pendente. Cache só retira ID após resultado confirmado; SQL/estado/transação permanecem no repositório. Nenhuma migração foi necessária nas tarefas F2-03/04/05; v1/v2 continuam intactas.
+
+## 22. Dinheiro — F3-01, 10/11/2026
+
+core/money/money.dart contém funções puras de parsing/formatação e operações verificadas. Entrada não usa double; centavos/resultados persistíveis são int não negativo em int64. BigInt verifica somas/produtos e formatação negativa extrema antes da conversão, sem virar tipo de coluna. list_budget_input.dart delega ao núcleo, preservando formato e mensagem existentes. Sem classe/serviço genérico ou pacote novo. Preços/entradas serão conectados nas tarefas seguintes.

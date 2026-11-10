@@ -1,6 +1,6 @@
 # TASKS.md — Plano incremental de desenvolvimento
 
-**Versão:** 1.0 — Fases 0, 1 e 2 concluídas; Fase 3 não iniciada
+**Versão:** 1.1 — Fases 0/1/2 concluídas; F3-01 concluída
 
 **Data:** 10/11/2026 (plano original: 07/11/2026)
 **Fontes de verdade:** `SPEC.md` (regras), `DESIGN.md` (interação), `ARCHITECTURE.md` (estrutura), `TESTING.md` (casos), `DECISIONS.md` (decisões).
@@ -83,17 +83,17 @@
 
 **Objetivo:** permitir registrar, corrigir e remover preços com exatidão.
 
-| Tarefa | Entrega | Critério de conclusão |
-| --- | --- | --- |
-| F3-01 | Conversor de moeda `pt-BR` ↔ centavos e validações | Testes para `4,22`, centavos e formatos inválidos |
-| F3-02 | Modelo `PurchaseEntry` com quantidade × unidade OU valor direto | Testar exclusividade dos modos e subtotais |
-| F3-03 | Calculadora pura de item/lista e compra parcial | CT-008 a CT-010, CT-013 a CT-017, CT-020, CT-026 |
-| F3-04 | SQLite para inserir/atualizar/excluir entradas | CT-022 a CT-027; transações e integridade |
-| F3-05 | ViewModel atualiza total após sucesso de persistência | CT-033 a CT-035 e UX-008 |
-| F3-06 | Painel de item existente e `Adicionar outro preço` | UX-020; 3 × 3,50 + 2 × 4,20 = R$ 18,90 |
-| F3-07 | Produto espontâneo com quantidade/preço no mesmo formulário | CT-018/CT-019, UX-003/UX-004 |
+| Tarefa | Entrega | Critério de conclusão | Status real |
+| --- | --- | --- | --- |
+| F3-01 | Conversor de moeda `pt-BR` ↔ centavos e validações | Testes para `4,22`, centavos e formatos inválidos | **Feito:** 17 novos testes; regressão 206 aprovados; analyze sem problemas |
+| F3-02 | Modelo `PurchaseEntry` com quantidade × unidade OU valor direto | Testar exclusividade dos modos e subtotais | Pendente |
+| F3-03 | Calculadora pura de item/lista e compra parcial | CT-008 a CT-010, CT-013 a CT-017, CT-020, CT-026 | Pendente |
+| F3-04 | SQLite para inserir/atualizar/excluir entradas | CT-022 a CT-027; transações e integridade | Pendente |
+| F3-05 | ViewModel atualiza total após sucesso de persistência | CT-033 a CT-035 e UX-008 | Pendente |
+| F3-06 | Painel de item existente e `Adicionar outro preço` | UX-020; 3 × 3,50 + 2 × 4,20 = R$ 18,90 | Pendente |
+| F3-07 | Produto espontâneo com quantidade/preço no mesmo formulário | CT-018/CT-019, UX-003/UX-004 | Pendente |
 
-**Decisão a resolver antes de F3-01:** política de preço zero e limites de entrada. Antes de F3-06: comportamento de valor direto com quantidade planejada.
+**Decisões resolvidas pelo usuário em 10/11/2026:** zero explícito é gratuito (D-028); limite técnico int64 com overflow recusado (D-029); valor direto em item planejado, inclusive caso misto, mantém Quantidade não confirmada e A comprar (D-030). Autorizado seguir da F3 em diante fase por fase, uma tarefa/commit por vez, parando somente quando decisão necessária ou portão de qualidade impedir.
 
 **Explicações didáticas:** encapsulamento, imutabilidade, `List`, `fold`, testes unitários, por que centavos inteiros evitam erros financeiros.
 
@@ -166,6 +166,6 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 2 entregue.** Próxima tarefa pequena sugerida: **F3-01 — conversor de moeda e validações**, somente após autorização para F3 e decisão de Q-001 (preço zero/limites). Usuário autorizou concluir F2 por tarefas sequenciais, cada uma com commit/envio. Campo de preço/subtotal, compra, finalização e histórico não foram implementados.
+**F3-01 entregue.** Próxima tarefa pequena: **F3-02 — modelo de entrada de compra**, já autorizada. Sem UI de preços/compra/finalização/histórico nesta tarefa. Continuar fase por fase conforme autorização do usuário, mantendo tarefas pequenas e commit/envio individual.
 
-**Estado atual:** Fases 0/1/2 **feitas**; F3 em diante **pendentes e não iniciadas**. Commits publicados das tarefas anteriores: F2-01 `9cb4acd`, F2-02 `17d1dd0`, F2-03 `b27c5ca`, F2-04 `1c5986d`; F2-05 corresponde ao commit individual de fechamento, conforme autorização persistente. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos antigos de ausência de `.git` e de UI de produtos inexistente são históricos.
+**Estado atual:** Fases 0/1/2 e F3-01 **feitas**; F3-02 em diante **pendentes e autorizadas sequencialmente**. APK normal mais recente ainda é o da Fase 2; F3-01 só acrescenta código puro e compartilha conversão com o orçamento. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos anteriores de F3 não autorizada são históricos.

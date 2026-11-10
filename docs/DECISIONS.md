@@ -36,6 +36,9 @@ Este documento registra *o que decidimos* e separa essas decisões de propostas 
 | D-025 | Flutter + Dart | Base compartilhável para Android/iOS |
 | D-026 | Cada etapa atende requisitos e testes antes de ser considerada concluída | Desenvolvimento incremental com regressão |
 | D-027 | Código organizado e explicado didaticamente | Projeto também serve para aprender programação |
+| D-028 | Preço zero é gratuito explícito; vazio é ausência | Aprovado pelo usuário em 10/11/2026 |
+| D-029 | Centavos e resultados limitados a inteiros de 64 bits, com overflow recusado | Aprovado pelo usuário; sem teto comercial arbitrário |
+| D-030 | Valor direto em item planejado mantém quantidade não confirmada, inclusive caso misto | Aprovado pelo usuário; valor contado e item em A comprar |
 
 ## 2. Propostas técnicas e validação no scaffold
 
@@ -44,7 +47,7 @@ Este documento registra *o que decidimos* e separa essas decisões de propostas 
 | P-001 | MVVM enxuto organizado por features — adotado na fundação F0 | Uso e limites registrados na seção 6; camadas futuras serão introduzidas conforme a tarefa |
 | P-002 | `Provider` + `ChangeNotifier` — adotado na fundação F0 | Estado de tema e reconstruções testados; reavaliar se a complexidade exigir |
 | P-003 | SQLite com `sqflite` — adotado na F1-02 | Banco/migração inicial testados em Windows/Android; detalhes na seção 8 |
-| P-004 | Usar `int` em centavos, com parser e formatação `pt-BR` | Regra técnica de precisão; detalhar limites e validação |
+| P-004 | `int` em centavos e conversor pt-BR — adotado em F3-01 | BigInt verifica intermediários; int64 continua no domínio/persistência |
 | P-005 | Navegação com `Navigator` no início | Avaliar `go_router` só se rotas realmente demandarem |
 | P-006 | Soft delete adotado no armazenamento F2-02; possibilidade de desfazer ainda proposta | Remoção preserva dados; UX, ocultação e desfazer continuam para tarefas posteriores |
 
@@ -54,8 +57,8 @@ Este documento registra *o que decidimos* e separa essas decisões de propostas 
 
 | ID | Pergunta | Momento de resolução | Impacto |
 | --- | --- | --- | --- |
-| Q-001 | Preço igual a `R$ 0,00` deve ser aceito como produto gratuito? | Antes de F3-01 | Validação e soma |
-| Q-002 | Se item tem quantidade planejada, mas compra registrada apenas por valor direto, como mostrar quantidade não confirmada? | Antes de F3-06 | Estado e filtro/revisão |
+| Q-001 | **Resolvida pelo usuário em 10/11/2026:** zero é gratuito explícito; vazio é ausência. D-028/D-029 | F3-01 | Validação e soma |
+| Q-002 | **Resolvida pelo usuário em 10/11/2026:** valor direto não confirma quantidade planejada; usar Quantidade não confirmada. D-030 | F3-03/06 | Estado, filtro e revisão |
 | Q-003 | Ao digitar nome já existente, sugerir reaproveitá-lo sem impedir duplicatas legítimas? | Antes de F3-07 | Cadastro rápido |
 | Q-004 | Qual duração e comportamento do `Desfazer` após remover item? | Antes do polimento F4 | Recuperação de erro |
 | Q-005 | É permitido apagar do aparelho uma lista histórica finalizada? Em caso positivo, qual confirmação? | Antes de F6 | Exclusão vs. imutabilidade |
@@ -199,3 +202,15 @@ F2-04, 10/11/2026: comparador puro por sortOrder com desempate por ID concretiza
 - O roteiro host existente ganhou `--run --items`: cria lista exclusiva com três produtos, remove um, reinicia o processo sem rede, verifica quantidades/ordem/ocultação e limpa apenas a própria lista. Preserva configurações capturadas de rede/tela em finally; evidências da F2 ficam em diretório próprio, sem sobrescrever a evidência offline F1. Sem dependência nova ou rede no runtime do app.
 
 Q-001 a Q-007 não foram resolvidas silenciosamente. Antes de começar F3-01, será necessário resolver Q-001 e limites de entrada de preços. Nenhum cálculo de dinheiro/estado de compra foi implementado na F2.
+
+## 15. Decisões aprovadas para Fase 3 — 10/11/2026
+
+O usuário autorizou prosseguir da Fase 3 em diante, fase por fase, mantendo tarefas pequenas e commit/envio individual. Respondeu explicitamente às perguntas abaixo antes da implementação:
+
+- **D-028 (Q-001 resolvida):** aceitar preço/valor direto zero como produto gratuito. Campo vazio continua sem preço e não cria entrada. Uma entrada de zero conta como registro de compra; não inferir pendência por subtotal zero.
+- **D-029 (limites aprovados):** somente limite técnico de inteiros assinados de 64 bits. Preços/valores/subtotais/totais são não negativos, no máximo 9.223.372.036.854.775.807 centavos. Rejeitar parsing, produto ou soma não representável antes de persistir/atualizar UI. Sem teto comercial arbitrário. BigInt poderá ser usado para verificar intermediários; valores persistidos continuam int. Negativos são permitidos apenas na apresentação de diferenças/saldos, não como preço de entrada.
+- **D-030 (Q-002 resolvida):** quando houver quantidade planejada e compra por valor direto, mostrar Quantidade não confirmada, contabilizar os valores e manter em A comprar. Em pergunta complementar, o usuário aprovou explicitamente o mesmo estado para **qualquer caso misto**, mesmo se unidades conhecidas já atingirem o planejado; a quantidade total segue desconhecida. Não inferir quantas unidades vieram do valor direto. Sem quantidade planejada, uma entrada válida (inclusive gratuita) é compra registrada.
+
+Alternativas apresentadas: recusar preço zero; adotar teto comercial menor; escolher outro comportamento para quantidade não confirmada. Usuário escolheu as opções acima. Atualizações em SPEC/DESIGN/TESTING acompanham cada implementação; nenhuma migração de dados existentes é necessária para aprovar essas políticas.
+
+F3-01: core/money/money.dart concentra conversão estrita já usada no orçamento (inteiro ou vírgula com 1/2 casas, sem milhar/prefixo/sinal), formatação exata e soma/produto verificados. Não há classe Money nem pacote decimal desnecessário. BigInt evita overflow intermediário antes de voltar a int; até formatar int64 mínimo negativo exige esse cuidado, conforme documentação do SDK local lib/core/int.dart. Orçamento delega ao conversor sem mudar seus testes/feedback. Sem migração ou UI de preços nesta tarefa.

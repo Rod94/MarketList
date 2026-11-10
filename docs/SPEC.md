@@ -40,6 +40,9 @@ Aplicativo simples para preparar uma lista em casa, registrar os preços conform
 - Permitir corrigir/excluir uma entrada de compra; subtotal e total devem ser recalculados sem duplicar valores.
 - Quantidade planejada e quantidade efetivamente comprada são informações distintas.
 - Usar cálculos monetários exatos em centavos, sem erros de ponto flutuante.
+- Preço/valor direto **zero explícito** representa compra gratuita; campo vazio continua sem registro de preço (D-028, aprovado em 10/11/2026).
+- Rejeitar valores, produtos ou somas que não caibam em centavos inteiros assinados de 64 bits, sem teto comercial adicional (D-029).
+- Item com quantidade planejada e entrada de valor direto fica como **quantidade não confirmada**, inclusive se misturado com entradas por unidade que já atinjam o planejado. Valores entram na soma; item permanece em A comprar (D-030).
 
 ### RF-04 — Itens descobertos no mercado
 - O usuário pode adicionar, pelo botão `+`, qualquer item que não estava na lista original.

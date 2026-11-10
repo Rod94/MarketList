@@ -56,10 +56,12 @@ Minhas listas
 | Pendente | Nenhuma entrada de compra | Sim | Subtotal não registrado |
 | Parcial | Planejado 5, comprado 3 com quantidade conhecida | Sim | Mostra `3 de 5` e subtotal parcial |
 | Concluído | Compra registrada e quantidade planejada atendida, ou item sem quantidade planejada que recebeu valor direto | Não | Mostra indicador discreto de concluído |
-| Quantidade não confirmada | Item com quantidade planejada e somente valor direto, sem unidades compradas conhecidas | Sim, provisoriamente | **Proposta pendente de validação:** não inferir que o planejado foi atendido |
+| Quantidade não confirmada | Item planejado com entrada de valor direto, inclusive misturado a unidades conhecidas | Sim | D-030 aprovada em 10/11/2026: não inferir quantidade total nem conclusão |
 | Removido | Usuário retirou da lista ativa | Não | Não entra no total; possível `Desfazer` ainda sem duração decidida |
 
 **Importante:** valor registrado, mesmo parcial, **já compõe o total**. Ícones e filtros nunca controlam somas financeiras.
+
+D-028/D-029 aprovadas em 10/11/2026: preço zero explícito é registro gratuito, diferente de vazio; entrada/resultados fora de int64 devem mostrar erro sem apagar campos nem alterar total confirmado. Zero não é critério de pendência: é a existência de entrada persistida que confirma registro.
 
 ### 3.3 Regras da lista
 
