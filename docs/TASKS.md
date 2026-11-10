@@ -105,7 +105,7 @@
 | --- | --- | --- |
 | F4-01 | Lista de itens compacta com estados visuais | **Feito:** quatro estados com texto e ícone, altura de toque verificada; 298 testes aprovados |
 | F4-02 | Filtros `Todos` / `A comprar` | **Feito:** UX-011 a UX-016, ordem e total preservados; 299 testes aprovados |
-| F4-03 | Barra inferior fixa com total e `+ Adicionar` | UX-005, UX-017 e validação com teclado |
+| F4-03 | Barra inferior fixa com total e `+ Adicionar` | **Feito:** total fixo ao rolar 100 itens, inclusão acessível com teclado e fonte 2× em widget; 300 testes aprovados |
 | F4-04 | Orçamento opcional, saldo/excedente | CT-028 a CT-031, sem bloquear ações |
 | F4-05 | Temas claro/AMOLED e ajustes de acessibilidade | UX-009, UX-018, UX-019; inspeção em celular real |
 | F4-06 | Ajustes de feedback e velocidade de cadastro | Confirmar salva, erro não apaga campos; evitar toque duplo |
@@ -166,7 +166,7 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 4 em andamento.** Próxima tarefa **F4-03**, barra inferior de total e inclusão. D-032 e D-033 orientam o Desfazer e a persistência do tema.
+**Fase 4 em andamento.** Próxima tarefa **F4-04**, orçamento opcional e saldo. D-032 e D-033 orientam o Desfazer e a persistência do tema.
 
 **Estado atual:** Fases 0 a 3 concluídas. Cadastro e edição de preços disponíveis na interface com banco v3. Evidências e pendências de teste físico constam do relatório da fase.
 

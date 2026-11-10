@@ -140,6 +140,48 @@ void main() {
   });
 
   testWidgets(
+    'UX-017 mantém total e inclusão acessíveis ao rolar 100 produtos',
+    (tester) async {
+      repository.items.addAll([
+        for (var index = 0; index < 100; index++)
+          ShoppingItem(
+            id: 'row-$index',
+            shoppingListId: list.id,
+            name: 'Produto $index',
+            origin: ShoppingItemOrigin.planned,
+            sortOrder: index,
+          ),
+      ]);
+      repository.entries.add(
+        PurchaseEntry(
+          id: 'first-price',
+          shoppingItemId: 'row-0',
+          directAmountCents: 199,
+        ),
+      );
+      await open(tester);
+      final total = find.text('Total registrado: R\$ 1,99');
+      final add = find.byKey(const ValueKey('add-item'));
+      final totalPosition = tester.getCenter(total);
+      final addPosition = tester.getCenter(add);
+      expect(
+        totalPosition.dy,
+        greaterThan(tester.getBottomLeft(find.byType(ListView)).dy),
+      );
+      await tester.scrollUntilVisible(
+        find.text('Produto 99'),
+        400,
+        maxScrolls: 40,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Produto 99').hitTestable(), findsOneWidget);
+      expect(tester.getCenter(total), totalPosition);
+      expect(tester.getCenter(add), addPosition);
+      expect(add.hitTestable(), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'F3-07 confirma a prévia somente após salvar e mantém o preço em falha',
     (tester) async {
       repository.quickPurchaseHandler = (_, _, _, _) async =>

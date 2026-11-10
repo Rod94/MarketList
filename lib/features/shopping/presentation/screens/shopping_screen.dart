@@ -109,14 +109,6 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                     ],
                   ),
                 ),
-              if (model.totalCents != null)
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.small),
-                  child: Text(
-                    'Total registrado: ${formatMoneyCents(model.totalCents!)}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
               if (model.hasLoaded)
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -211,17 +203,41 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.medium),
-            child: FilledButton.icon(
-              key: const ValueKey('add-item'),
-              onPressed: model.canEdit ? () => _openForm(context) : null,
-              icon: const Icon(Icons.add),
-              label: const Text('Adicionar produto'),
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Divider(height: 1),
+            SafeArea(
+              top: false,
+              minimum: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.medium,
+                vertical: AppSpacing.small,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (model.totalCents case final total?)
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        'Total registrado: ${formatMoneyCents(total)}',
+                        textAlign: TextAlign.center,
+                        style: compactAmounts
+                            ? Theme.of(context).textTheme.titleMedium
+                            : Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                  FilledButton.icon(
+                    key: const ValueKey('add-item'),
+                    onPressed: model.canEdit ? () => _openForm(context) : null,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Adicionar produto'),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
