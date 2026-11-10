@@ -10,6 +10,8 @@ Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e 
 
 **F3-02 concluída:** modelo puro de entrada por unidades ou valor direto, subtotal validado e gratuito explícito. Regressão atual **224 aprovados**, análise sem problemas; sem nova UI/APK nesta tarefa. Próxima F3-03, calculadora.
 
+**F3-03 concluída:** calculadora pura de subtotais/total e estados, incluindo gratuito, parcial e quantidade não confirmada. Removidos não somam. **246 testes aprovados**, análise sem problemas. Próxima F3-04, persistência de entradas; preços ainda não disponíveis na interface.
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.

@@ -25,3 +25,15 @@ Arquivos novos: domain/models/purchase_entry.dart e test/unit/purchase_entry_tes
 Conceitos: parâmetros nomeados opcionais representam os campos, mas não dispensam invariantes. Getter isDirect é derivado, sem flag redundante; subtotalCents é calculado uma vez antes de permitir usar o objeto. RangeError para overflow também é ArgumentError, útil para distinguir dado inválido. Não se armazena subtotal duplicado no banco futuro: a instância calcula a partir dos campos.
 
 RED saiu 1 por arquivo/tipo inexistente. GREEN/regressão: **224 aprovados**, incluindo **18 novos**; análise sem problemas. Formatados 2 arquivos. Sem migração/UI/build/integracão Android nesta tarefa. Para validar: `flutter test test/unit/purchase_entry_test.dart`. Exercício opcional numa branch de treino: conferir 2 unidades a 350 centavos com subtotal 700. Próxima tarefa: calculadora F3-03, autorizada. Nenhuma regra aprovada foi alterada.
+
+## F3-03 — Calculadora e estados
+
+**Concluída em 10/11/2026.** shopping_calculator.dart calcula uma fotografia imutável da lista e de cada produto: entradas, subtotal, quantidade conhecida, quantidade total opcional, faltante opcional e estado derivado. Não há flags persistidas redundantes nem dependência Flutter. Item removido conserva dados/subtotal e é excluído do total oficial calculado.
+
+Arquivos: novo domain/shopping_calculator.dart e teste unitário com 22 casos; README/TASKS/TESTING/ARCHITECTURE/DECISIONS/relatório atualizados. IDs duplicados, entradas órfãs/fora da lista e somas não representáveis são recusados; dados não são corrigidos silenciosamente. Ordem é a posição persistida, sem mutar inputs. Fotografia guarda cópias imutáveis de coleções.
+
+Fluxo: itens/entradas válidos → agrupar por identidade → subtotal/quantidade verificados → estado por regras aprovadas → somar somente não removidos. Pendente significa nenhuma entrada, não subtotal zero. Produto gratuito pode estar comprado. Planejado com direto (inclusive misto suficiente) fica Quantidade não confirmada por D-030; quantidade total/faltante ficam null, enquanto unidades conhecidas permanecem preservadas. Sem direto, 3/5 é parcial/faltam 2 e 6/5 é comprado/faltam 0, sem bloqueio.
+
+Conceitos: Map agrupa como Dictionary em C#; Set detecta identidade duplicada; enum explicita estados; List.unmodifiable protege a fotografia; funções puras recebem dados e devolvem resultado determinístico. BigInt protege também soma de unidades gratuitas contra overflow, sem converter unidade desconhecida em uma unidade.
+
+TDD RED: calculadora inexistente. Um aviso de estilo foi corrigido antes da análise final, que passou. Regressão: **246 aprovados**, incluindo **22 novos**, sem alterar expectativas. Dois arquivos formatados. Sem migração/UI/Android/build nesta tarefa. Para verificar: `flutter test test/unit/shopping_calculator_test.dart`. Exercício opcional em branch de treino: conferir parcial 2/5 e faltante 3. Próxima F3-04: persistir entradas e aplicar essas invariantes transacionalmente.

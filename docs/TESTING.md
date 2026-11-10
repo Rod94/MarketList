@@ -1,6 +1,6 @@
 # TESTING.md — Estratégia e casos de teste do aplicativo de supermercado
 
-**Versão:** 1.2 — Fases 0/1/2 e F3-01/02 testadas no escopo implementado
+**Versão:** 1.3 — Fases 0/1/2 e F3-01 a F3-03 testadas no escopo implementado
 
 **Data:** 10/11/2026 (catálogo original: 07/11/2026)
 **Referências:** `SPEC.md`, `DESIGN.md`, `ARCHITECTURE.md`, `TASKS.md`
@@ -465,3 +465,9 @@ Orçamento delega ao conversor e todos os 10 testes anteriores/fluxos widget con
 ## 24. F3-02 — entrada de compra, 10/11/2026
 
 purchase_entry_test.dart: **18 novos testes** de modos exclusivos, valores/quantidades, identidade/vínculo, zero gratuito e subtotal com overflow recusado. RED saiu 1 por implementação ausente, sem asserções. `dart format` processou/ajustou 2 arquivos. `flutter analyze`: sem problemas. `flutter test --reporter expanded`: **224 aprovados/0 falhas**, saída 0, build/f3-02-regression.log. Sem alteração de banco/UI, teste Android ou novo APK nesta tarefa pura.
+
+## 25. F3-03 — calculadora pura, 10/11/2026
+
+shopping_calculator_test.dart: **22 novos testes**, cobrindo exemplos 1890/1266/4782→7938 centavos, pendente/parcial/completo/excedido, zero gratuito, direto/misto com quantidade não confirmada, removido fora do total, correção/exclusão de entrada, ordem/imutabilidade, IDs/vínculos inválidos e overflow monetário/de quantidade.
+
+`flutter test test/unit/shopping_calculator_test.dart --reporter expanded` RED saiu 1 por arquivo/tipos ausentes. Primeira análise parou em 1 aviso de chaves em if; corrigido. Análise seguinte sem problemas. `dart format` ajustou os 2 arquivos novos; `flutter test --reporter expanded`: **246 aprovados/0 falhas**, saída 0, build/f3-03-regression.log. Casos CT/FIN de finalização/histórico permanecem cobertos apenas no domínio matemático aplicável, não como fluxo inteiro. Sem banco/UI novos ou testes Android nesta tarefa.
