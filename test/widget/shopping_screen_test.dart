@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:market_list/app/app.dart';
+import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
 
@@ -30,6 +31,65 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('add-item')));
     await tester.pumpAndSettle();
   }
+
+  void seedPurchaseStatuses() {
+    for (final (index, name) in ['Arroz', 'Feijão', 'Leite', 'Carne'].indexed) {
+      repository.items.add(
+        ShoppingItem(
+          id: 'status-$index',
+          shoppingListId: list.id,
+          name: name,
+          origin: ShoppingItemOrigin.planned,
+          sortOrder: index,
+          plannedQuantity: 5,
+        ),
+      );
+    }
+    repository.entries.addAll([
+      PurchaseEntry(
+        id: 'partial',
+        shoppingItemId: 'status-1',
+        quantity: 3,
+        unitPriceCents: 350,
+      ),
+      PurchaseEntry(
+        id: 'purchased',
+        shoppingItemId: 'status-2',
+        quantity: 5,
+        unitPriceCents: 422,
+      ),
+      PurchaseEntry(
+        id: 'unknown',
+        shoppingItemId: 'status-3',
+        directAmountCents: 4782,
+      ),
+    ]);
+  }
+
+  testWidgets('F4-01 diferencia os quatro estados por texto e ícone', (
+    tester,
+  ) async {
+    seedPurchaseStatuses();
+    await open(tester);
+
+    for (final (index, (label, icon)) in [
+      ('Pendente · Planejado: 5', Icons.circle_outlined),
+      ('Parcial · 3 de 5', Icons.timelapse),
+      ('Comprado · 5 unidade(s)', Icons.check_circle_outline),
+      ('Quantidade não confirmada · Planejado: 5', Icons.help_outline),
+    ].indexed) {
+      final row = find.byKey(ValueKey('item-status-$index'));
+      expect(
+        find.descendant(of: row, matching: find.text(label)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: row, matching: find.byIcon(icon)),
+        findsOneWidget,
+      );
+      expect(tester.getSize(row).height, greaterThanOrEqualTo(48));
+    }
+  });
 
   testWidgets(
     'F3-07 confirma a prévia somente após salvar e mantém o preço em falha',

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/money/money.dart';
 import '../../domain/models/shopping_item.dart';
+import '../../domain/shopping_calculator.dart';
 import '../view_models/shopping_items_view_model.dart';
 import '../purchase_status_text.dart';
 import '../widgets/item_form_sheet.dart';
@@ -118,8 +119,20 @@ class ShoppingScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final item = visibleItems[index];
                           final summary = model.summaryFor(item.id)!;
+                          final statusIcon = switch (summary.status) {
+                            ItemPurchaseStatus.pending => Icons.circle_outlined,
+                            ItemPurchaseStatus.partial => Icons.timelapse,
+                            ItemPurchaseStatus.purchased =>
+                              Icons.check_circle_outline,
+                            ItemPurchaseStatus.quantityUnconfirmed =>
+                              Icons.help_outline,
+                            ItemPurchaseStatus.removed =>
+                              Icons.remove_circle_outline,
+                          };
                           return ListTile(
                             key: ValueKey('item-${item.id}'),
+                            visualDensity: VisualDensity.compact,
+                            leading: ExcludeSemantics(child: Icon(statusIcon)),
                             title: Text(item.name),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
