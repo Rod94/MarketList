@@ -14,6 +14,8 @@ Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e 
 
 **F3-04:** banco v3 e repositório de entradas, com correção/exclusão, fotografia confirmada e rollback por erro/overflow. **269 testes aprovados**, análise sem problemas. Preços ainda não ligados à UI; próxima F3-05. APKs antigos v1/v2 recusam banco v3, sem apagar dados.
 
+**F3-05:** ViewModel mantém total confirmado separado de prévias, preserva campos/ID no erro e só aceita fotografia após commit. **281 testes aprovados**, análise sem problemas, **8 nativos aprovados** após disponibilizar o aparelho desbloqueado. Painel visual de preço é a próxima tarefa.
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.
@@ -50,7 +52,7 @@ flutter test integration_test --no-uninstall -d ID_ANDROID
 flutter build apk --debug
 ```
 
-O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-f3-04-debug.apk` na mesma pasta, compatível com esquema v3. Sua UI ainda é de planejamento. Artefatos anteriores foram preservados. Após abrir v3, APKs antigos v1/v2 recusam a versão superior; não servem como rollback. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
+O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-f3-05-debug.apk` na mesma pasta, compatível com esquema v3. Sua UI ainda é de planejamento. Artefatos anteriores foram preservados. Após abrir v3, APKs antigos v1/v2 recusam a versão superior; não servem como rollback. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
 
 Use `--no-uninstall` na integração: o Flutter 3.47.9 desinstala o pacote por padrão ao encerrar o teste. A opção preserva a instalação e seus dados; ao terminar, gere/instale o APK normal para substituir a variante de teste. Os testes de banco/repositório usam exclusivamente arquivos temporários próprios.
 

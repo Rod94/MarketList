@@ -1,7 +1,11 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/money/money.dart';
+
 import '../../domain/models/shopping_item.dart';
 import '../../domain/models/shopping_list.dart';
+import '../../domain/models/purchase_entry.dart';
+import '../../domain/shopping_calculator.dart';
 import '../../domain/shopping_repository.dart';
 import '../item_quantity_input.dart';
 
@@ -12,6 +16,16 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   final ShoppingRepository _repository;
   final ShoppingList shoppingList;
   List<ShoppingItem> _items = const [];
+  ShoppingCalculation? _calculation;
+  String? _purchaseItemId;
+  PurchaseEntry? _editingPurchase;
+  String? _entryCreationId;
+  String? _removingEntryId;
+  String _purchaseQuantity = '';
+  String _purchasePrice = '';
+  String? _purchaseError;
+  String? _purchaseQuantityError;
+  String? _purchasePriceError;
   bool _loading = false;
   bool _saving = false;
   bool _removing = false;
@@ -45,6 +59,36 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   String? get saveError => _saveError;
   String? get nameError => _nameError;
   String? get quantityError => _quantityError;
+  int? get totalCents => _calculation?.totalCents;
+  ShoppingCalculation? get calculation => _calculation;
+  PurchaseEntry? get editingPurchase => _editingPurchase;
+  String? get removingEntryId => _removingEntryId;
+  String get purchaseQuantity => _purchaseQuantity;
+  String get purchasePrice => _purchasePrice;
+  String? get purchaseError => _purchaseError;
+  String? get purchaseQuantityError => _purchaseQuantityError;
+  String? get purchasePriceError => _purchasePriceError;
+  String get purchasePriceLabel => _purchaseQuantity.trim().isEmpty
+      ? 'Valor total (R\$)'
+      : 'Preço unitário (R\$)';
+
+  ItemPurchaseSummary? summaryFor(String id) {
+    for (final summary
+        in _calculation?.items ?? const <ItemPurchaseSummary>[]) {
+      if (summary.item.id == id) return summary;
+    }
+    return null;
+  }
+
+  int? get purchasePreviewCents {
+    try {
+      return _buildPurchase('preview').subtotalCents;
+    } on FormatException {
+      return null;
+    } on ArgumentError {
+      return null;
+    }
+  }
 
   Future<void> load() async {
     if (_disposed || isBusy) return;
@@ -52,9 +96,9 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     _loadError = null;
     _notify();
     try {
-      final loaded = await _repository.listItems(shoppingList.id);
+      final loaded = await _repository.loadShoppingList(shoppingList.id);
       if (_disposed) return;
-      _items = _ordered(loaded);
+      _acceptCalculation(loaded);
       _hasLoaded = true;
     } catch (_) {
       if (!_disposed) {
@@ -146,7 +190,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       } else {
         updated[index] = saved;
       }
-      _items = _ordered(updated);
+      _updateConfirmedItems(updated);
       _resetDraft();
       return true;
     } on FinalizedShoppingListException {
@@ -193,7 +237,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       if (_disposed) return false;
       // O contrato confirma remoção/ausência, mas não retorna o instante gravado.
       // Retire só este ID do cache; não invente uma data local de persistência.
-      _items = List.unmodifiable(_items.where((item) => item.id != editing.id));
+      _updateConfirmedItems(_items.where((item) => item.id != editing.id));
       if (!removed) {
         _saveError = 'Este produto já não está disponível. Cancele e atualize os produtos.';
         return false;
@@ -217,6 +261,185 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       _removing = false;
       _notify();
     }
+  }
+
+  bool beginPurchase(ShoppingItem item, {PurchaseEntry? entry}) {
+    if (!canEdit ||
+        item.shoppingListId != shoppingList.id ||
+        item.removedAt != null ||
+        (entry != null && entry.shoppingItemId != item.id)) {
+      return false;
+    }
+    _resetPurchaseDraft();
+    _purchaseItemId = item.id;
+    _editingPurchase = entry;
+    _purchaseQuantity = entry?.quantity?.toString() ?? '';
+    final price = entry?.unitPriceCents ?? entry?.directAmountCents;
+    _purchasePrice = price == null
+        ? ''
+        : formatMoneyCents(price).replaceFirst('R\$ ', '');
+    return true;
+  }
+
+  void setPurchaseQuantity(String value) {
+    if (_disposed || _saving) return;
+    _purchaseQuantity = value;
+    _purchaseQuantityError = null;
+    _notify();
+  }
+
+  void setPurchasePrice(String value) {
+    if (_disposed || _saving) return;
+    _purchasePrice = value;
+    _purchasePriceError = null;
+    _notify();
+  }
+
+  PurchaseEntry _buildPurchase(String id) {
+    final quantity = parsePlannedQuantity(_purchaseQuantity);
+    final price = parseMoneyCents(_purchasePrice);
+    if (price == null) {
+      throw const FormatException('Informe o preço ou valor total.');
+    }
+    return PurchaseEntry(
+      id: id,
+      shoppingItemId: _purchaseItemId ?? 'preview',
+      quantity: quantity,
+      unitPriceCents: quantity == null ? null : price,
+      directAmountCents: quantity == null ? price : null,
+    );
+  }
+
+  Future<bool> savePurchaseDraft() async {
+    if (!canEdit || _purchaseItemId == null) return false;
+    _purchaseQuantityError = null;
+    _purchasePriceError = null;
+    _purchaseError = null;
+    try {
+      parsePlannedQuantity(_purchaseQuantity);
+    } on FormatException catch (error) {
+      _purchaseQuantityError = error.message;
+    }
+    try {
+      if (parseMoneyCents(_purchasePrice) == null) {
+        _purchasePriceError = 'Informe o preço ou valor total.';
+      }
+    } on FormatException catch (error) {
+      _purchasePriceError = error.message;
+    }
+    if (_purchaseQuantityError != null || _purchasePriceError != null) {
+      _notify();
+      return false;
+    }
+    _saving = true;
+    _notify();
+    try {
+      final editing = _editingPurchase;
+      _entryCreationId ??= editing?.id ?? _repository.newEntryId();
+      final candidate = _buildPurchase(_entryCreationId!);
+      final result = editing == null
+          ? await _repository.createPurchaseEntry(
+              shoppingListId: shoppingList.id,
+              entry: candidate,
+            )
+          : await _repository.updatePurchaseEntry(
+              shoppingListId: shoppingList.id,
+              entry: candidate,
+            );
+      if (_disposed) return false;
+      _acceptCalculation(result);
+      _resetPurchaseDraft();
+      return true;
+    } catch (error) {
+      _purchaseError = _purchaseFailure(error);
+      return false;
+    } finally {
+      _saving = false;
+      _notify();
+    }
+  }
+
+  Future<bool> removeEntry(PurchaseEntry entry) async {
+    final item = summaryFor(entry.shoppingItemId)?.item;
+    if (!canEdit || item == null || item.removedAt != null) return false;
+    _saving = true;
+    _removingEntryId = entry.id;
+    _purchaseError = null;
+    _notify();
+    try {
+      final result = await _repository.removePurchaseEntry(
+        shoppingListId: shoppingList.id,
+        shoppingItemId: entry.shoppingItemId,
+        entryId: entry.id,
+      );
+      if (_disposed) return false;
+      _acceptCalculation(result);
+      if (_editingPurchase?.id == entry.id) _resetPurchaseDraft();
+      return true;
+    } catch (error) {
+      _purchaseError = _purchaseFailure(error);
+      return false;
+    } finally {
+      _saving = false;
+      _removingEntryId = null;
+      _notify();
+    }
+  }
+
+  String _purchaseFailure(Object error) {
+    if (error is FinalizedShoppingListException ||
+        error is ShoppingListNotFoundException) {
+      _readOnly = true;
+      return 'Esta lista não permite alterações. Seus campos foram mantidos.';
+    }
+    if (error is RangeError) {
+      return 'O valor, quantidade ou total é grande demais. Seus campos foram mantidos.';
+    }
+    if (error is PurchaseEntryCreationConflict) {
+      return 'Esta entrada já foi salva com outros dados. Cancele e atualize os produtos.';
+    }
+    if (error is PurchaseEntryNotFoundException ||
+        error is RemovedShoppingItemException ||
+        error is ShoppingItemNotFoundException) {
+      return 'A entrada ou produto não está mais disponível. Cancele e atualize os produtos.';
+    }
+    return 'Não foi possível gravar a entrada. Seus campos foram mantidos. Tente novamente.';
+  }
+
+  void clearPurchaseDraft() {
+    if (_disposed || _saving) return;
+    _resetPurchaseDraft();
+    _notify();
+  }
+
+  void _resetPurchaseDraft() {
+    _purchaseItemId = null;
+    _editingPurchase = null;
+    _entryCreationId = null;
+    _purchaseQuantity = '';
+    _purchasePrice = '';
+    _purchaseError = null;
+    _purchaseQuantityError = null;
+    _purchasePriceError = null;
+  }
+
+  void _acceptCalculation(ShoppingCalculation calculation) {
+    _calculation = calculation;
+    _items = _ordered(calculation.items.map((summary) => summary.item));
+  }
+
+  void _updateConfirmedItems(Iterable<ShoppingItem> values) {
+    final items = values.toList();
+    final ids = items.map((item) => item.id).toSet();
+    _acceptCalculation(
+      calculateShoppingList(
+        shoppingListId: shoppingList.id,
+        items: items,
+        entries: (_calculation?.items ?? const <ItemPurchaseSummary>[])
+            .expand((summary) => summary.entries)
+            .where((entry) => ids.contains(entry.shoppingItemId)),
+      ),
+    );
   }
 
   void clearDraft() {

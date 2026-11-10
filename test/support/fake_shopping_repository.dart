@@ -13,6 +13,16 @@ class FakeShoppingRepository implements ShoppingRepository {
 
   final List<ShoppingList> lists;
   final List<ShoppingItem> items;
+  final List<PurchaseEntry> entries = [];
+  final List<String> entryCreationIds = [];
+  int entryIdCalls = 0;
+  int purchaseCreateCalls = 0;
+  Future<ShoppingCalculation> Function(String, PurchaseEntry)?
+  purchaseCreateHandler;
+  Future<ShoppingCalculation> Function(String, PurchaseEntry)?
+  purchaseUpdateHandler;
+  Future<ShoppingCalculation> Function(String, String, String)?
+  purchaseRemoveHandler;
   final List<String> itemCreationIds = [];
   int itemIdCalls = 0;
   int itemCreateCalls = 0;
@@ -47,27 +57,59 @@ class FakeShoppingRepository implements ShoppingRepository {
   String newItemId() => 'fake-item-${++itemIdCalls}';
 
   @override
-  String newEntryId() =>
-      throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  String newEntryId() => 'fake-entry-${++entryIdCalls}';
   @override
-  Future<ShoppingCalculation> loadShoppingList(String shoppingListId) =>
-      throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  Future<ShoppingCalculation> loadShoppingList(String shoppingListId) async {
+    final loaded = await listItems(shoppingListId);
+    final ids = loaded.map((item) => item.id).toSet();
+    return calculateShoppingList(
+      shoppingListId: shoppingListId,
+      items: loaded,
+      entries: entries.where((entry) => ids.contains(entry.shoppingItemId)),
+    );
+  }
+
   @override
   Future<ShoppingCalculation> createPurchaseEntry({
     required String shoppingListId,
     required PurchaseEntry entry,
-  }) => throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  }) async {
+    purchaseCreateCalls++;
+    entryCreationIds.add(entry.id);
+    if (purchaseCreateHandler != null) {
+      return purchaseCreateHandler!(shoppingListId, entry);
+    }
+    entries.add(entry);
+    return loadShoppingList(shoppingListId);
+  }
+
   @override
   Future<ShoppingCalculation> updatePurchaseEntry({
     required String shoppingListId,
     required PurchaseEntry entry,
-  }) => throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  }) async {
+    if (purchaseUpdateHandler != null) {
+      return purchaseUpdateHandler!(shoppingListId, entry);
+    }
+    final index = entries.indexWhere((e) => e.id == entry.id);
+    entries[index] = entry;
+    return loadShoppingList(shoppingListId);
+  }
+
   @override
   Future<ShoppingCalculation> removePurchaseEntry({
     required String shoppingListId,
     required String shoppingItemId,
     required String entryId,
-  }) => throw UnimplementedError('Entradas ainda não usadas neste fake.');
+  }) async {
+    if (purchaseRemoveHandler != null) {
+      return purchaseRemoveHandler!(shoppingListId, shoppingItemId, entryId);
+    }
+    entries.removeWhere(
+      (entry) => entry.id == entryId && entry.shoppingItemId == shoppingItemId,
+    );
+    return loadShoppingList(shoppingListId);
+  }
 
   @override
   Future<ShoppingItem> createItem({

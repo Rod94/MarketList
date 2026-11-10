@@ -479,3 +479,15 @@ purchase_repository_test.dart: **18 novos testes** de idempotência/concorrênci
 RED saiu 1 por APIs ausentes. `dart format .`: 48 arquivos, 3 ajustados nessa execução após formatação inicial do código. `flutter analyze`: sem problemas. Primeiro GREEN do repositório: **16 aprovados**. Primeira regressão: **267 aprovados**; após 2 novos cenários de concorrência extrema/cascade, `flutter test --reporter expanded`: **269 aprovados/0 falhas**, saída 0, build/f3-04-regression-final.log. Resultados nativos/APK no relatório da fase. Ainda sem UI de preços.
 
 F3-04 Android: database_smoke_test com --no-uninstall/-d RXCY300NZZH/--verbose → **13 aprovados**; app_smoke_test com mesmas flags → **7 aprovados**. Logs build/f3-04-android-db.log e f3-04-android-ui.log. Build debug aprovado em 12,5 s; APK normal F3-04 instalado/aberto com Success/Status: ok. Sem uso de banco normal pelos testes. A verificação final de formatação abrange 48 arquivos Dart.
+
+## 27. F3-05 — estado financeiro, 10/11/2026
+
+shopping_purchase_state_test.dart acrescenta **12 casos**: total desconhecido/carregado, prévia separada, commit aguardado/toque duplo, falha com ID/texto mantidos, entradas inválidas/overflow, gratuito explícito, correção/exclusão, finalizada, remoção de produto e carga com erro preservando total anterior.
+
+RED saiu 1 por APIs ausentes, sem asserções. Formatação dos 3 arquivos ajustou 3. Análise inicial teve 8 avisos de estilo, corrigidos por `dart fix --apply --code=curly_braces_in_flow_control_structures` em 2 arquivos; análise seguinte **No issues found**. `flutter test --reporter expanded`: **281 aprovados/0 falhas**, saída 0, build/f3-05-regression.log.
+
+Primeira integração app_smoke_test --no-uninstall/-d RXCY300NZZH/--verbose saiu **79**, sem testes completos. Diagnóstico ADB da repetição encontrou **Dozing, showing=true, inputRestricted=true**; usuário foi solicitado a desbloquear. Não declarar a suíte aprovada enquanto não houver execução concluída. Caso novo acessa o ViewModel real pela rota e provoca falha SQL para provar que prévia não entra no total; não é ainda teste de campo de preço visual.
+
+Segunda tentativa ainda bloqueada também saiu 79. Após resposta do usuário/desbloqueio e keep-awake USB temporário, o mesmo comando passou **8 testes**, saída 0, build/f3-05-android-ui-unlocked.log. Sem mudança de asserções. O wrapper captura stay-on e restaura em finally. Não se extrapola esse diagnóstico para explicar todas as interrupções antigas do SDK.
+
+Build normal F3-05 aprovado em 11,0 s, install -r Success e am start Status: ok/COLD. Stay-on restaurado 0, igual ao original. 49 arquivos Dart na verificação final; sem nova migração ou iOS/release.

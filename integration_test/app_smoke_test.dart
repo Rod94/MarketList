@@ -8,6 +8,10 @@ import 'package:market_list/core/database/app_database.dart';
 import 'package:market_list/core/preferences/theme_preference.dart';
 import 'package:market_list/features/shopping/data/sqlite_shopping_repository.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
+import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
+import 'package:market_list/features/shopping/presentation/screens/shopping_screen.dart';
+import 'package:market_list/features/shopping/presentation/view_models/shopping_items_view_model.dart';
+import 'package:provider/provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -44,6 +48,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Minhas listas'), findsOneWidget);
   }
+
+  testWidgets(
+    'F3-05 Android: total do ViewModel só muda após commit; erro preserva prévia',
+    (tester) async {
+      await repository.createList(id: 'price', name: 'Compra financeira');
+      final item = await repository.createItem(
+        id: 'soap',
+        shoppingListId: 'price',
+        name: 'Sabonete',
+        plannedQuantity: 5,
+        origin: ShoppingItemOrigin.planned,
+      );
+      await repository.createPurchaseEntry(
+        shoppingListId: 'price',
+        entry: PurchaseEntry(
+          id: 'first',
+          shoppingItemId: 'soap',
+          quantity: 3,
+          unitPriceCents: 350,
+        ),
+      );
+      await openApp(tester);
+      await tester.tap(find.text('Compra financeira'));
+      await tester.pumpAndSettle();
+      final model = tester
+          .element(find.byType(ShoppingScreen))
+          .read<ShoppingItemsViewModel>();
+      expect(model.totalCents, 1050);
+      model.beginPurchase(item);
+      model.setPurchaseQuantity('2');
+      model.setPurchasePrice('4,20');
+      expect(model.purchasePreviewCents, 840);
+      expect(model.totalCents, 1050);
+      await db.execute(
+        '''CREATE TRIGGER fail_purchase BEFORE INSERT ON purchase_entries
+      BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END''',
+      );
+      expect(await model.savePurchaseDraft(), isFalse);
+      expect(model.totalCents, 1050);
+      expect(model.purchasePrice, '4,20');
+      await db.execute('DROP TRIGGER fail_purchase');
+      expect(await model.savePurchaseDraft(), isTrue);
+      expect(model.totalCents, 1890);
+      expect((await repository.loadShoppingList('price')).totalCents, 1890);
+      await tester.pumpAndSettle();
+    },
+  );
 
   testWidgets(
     'F2-05 Android: remoção falha sem perder campos, retry oculta e preserva registro',
