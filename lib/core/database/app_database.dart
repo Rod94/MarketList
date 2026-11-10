@@ -2,12 +2,13 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import 'migrations/v1.dart';
+import 'migrations/v2.dart';
 
 final class AppDatabase {
   AppDatabase({DatabaseFactory? factory, this.path})
     : _factory = factory ?? databaseFactory;
 
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
   static const fileName = 'market_list.db';
 
   final DatabaseFactory _factory;
@@ -24,7 +25,13 @@ final class AppDatabase {
         singleInstance: true,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
         // sqflite já executa onCreate em uma transação, incluindo a versão.
-        onCreate: (db, _) => createSchemaV1(db),
+        onCreate: (db, _) async {
+          await createSchemaV1(db);
+          await createSchemaV2(db);
+        },
+        onUpgrade: (db, oldVersion, _) async {
+          if (oldVersion < 2) await createSchemaV2(db);
+        },
         onDowngrade: onDatabaseVersionChangeError,
       ),
     );

@@ -1,6 +1,8 @@
+import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../domain/models/shopping_item.dart';
 import '../domain/models/shopping_list.dart';
 import '../domain/shopping_repository.dart';
 
@@ -13,6 +15,203 @@ final class SqliteShoppingRepository implements ShoppingRepository {
 
   @override
   String newListId() => const Uuid().v4();
+
+  @override
+  String newItemId() => const Uuid().v4();
+
+  @override
+  Future<ShoppingItem> createItem({
+    required String id,
+    required String shoppingListId,
+    required String name,
+    required ShoppingItemOrigin origin,
+    int? plannedQuantity,
+  }) async {
+    final candidate = ShoppingItem(
+      id: id,
+      shoppingListId: shoppingListId,
+      name: name,
+      origin: origin,
+      plannedQuantity: plannedQuantity,
+      sortOrder: 0,
+    );
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireList(txn, shoppingListId, writable: true);
+      final rows = await txn.query(
+        'shopping_items',
+        where: 'id = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        final existing = _itemFromRow(rows.single);
+        if (existing.shoppingListId != shoppingListId ||
+            existing.name != candidate.name ||
+            existing.plannedQuantity != plannedQuantity ||
+            existing.origin != origin) {
+          throw ShoppingItemCreationConflict(id);
+        }
+        if (existing.removedAt != null) throw RemovedShoppingItemException(id);
+        return existing;
+      }
+      final result = await txn.rawQuery(
+        'SELECT MAX(sort_order) AS last_position FROM shopping_items WHERE shopping_list_id = ?',
+        [shoppingListId],
+      );
+      final last = result.single['last_position'] as int?;
+      if (last == 9223372036854775807) {
+        throw StateError('Não há posição representável para outro item.');
+      }
+      final item = ShoppingItem(
+        id: id,
+        shoppingListId: shoppingListId,
+        name: candidate.name,
+        origin: origin,
+        plannedQuantity: plannedQuantity,
+        sortOrder: last == null ? 0 : last + 1,
+      );
+      await txn.insert('shopping_items', {
+        'id': item.id,
+        'shopping_list_id': item.shoppingListId,
+        'name': item.name,
+        'planned_quantity': item.plannedQuantity,
+        'origin': origin == ShoppingItemOrigin.planned ? 'planned' : 'at_store',
+        'sort_order': item.sortOrder,
+        'removed_at_utc': null,
+      });
+      return item;
+    });
+  }
+
+  @override
+  Future<List<ShoppingItem>> listItems(String shoppingListId) async {
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireList(txn, shoppingListId);
+      final rows = await txn.query(
+        'shopping_items',
+        where: 'shopping_list_id = ?',
+        whereArgs: [shoppingListId],
+        orderBy: 'sort_order, id',
+      );
+      return List<ShoppingItem>.unmodifiable(rows.map(_itemFromRow));
+    });
+  }
+
+  @override
+  Future<ShoppingItem> updateItem({
+    required String id,
+    required String shoppingListId,
+    required String name,
+    required int? plannedQuantity,
+  }) async {
+    _validateId(id, 'id');
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireList(txn, shoppingListId, writable: true);
+      final rows = await txn.query(
+        'shopping_items',
+        where: 'id = ? AND shopping_list_id = ?',
+        whereArgs: [id, shoppingListId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw ShoppingItemNotFoundException(id);
+      final existing = _itemFromRow(rows.single);
+      if (existing.removedAt != null) throw RemovedShoppingItemException(id);
+      final updated = ShoppingItem(
+        id: id,
+        shoppingListId: shoppingListId,
+        name: name,
+        plannedQuantity: plannedQuantity,
+        origin: existing.origin,
+        sortOrder: existing.sortOrder,
+      );
+      final changed = await txn.update(
+        'shopping_items',
+        {'name': updated.name, 'planned_quantity': updated.plannedQuantity},
+        where: 'id = ? AND shopping_list_id = ? AND removed_at_utc IS NULL',
+        whereArgs: [id, shoppingListId],
+      );
+      if (changed != 1) {
+        throw StateError('Não foi possível confirmar a edição.');
+      }
+      return updated;
+    });
+  }
+
+  @override
+  Future<bool> removeItem({
+    required String id,
+    required String shoppingListId,
+  }) async {
+    _validateId(id, 'id');
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireList(txn, shoppingListId, writable: true);
+      final changed = await txn.update(
+        'shopping_items',
+        {'removed_at_utc': _formatUtc(_now())},
+        where: 'id = ? AND shopping_list_id = ? AND removed_at_utc IS NULL',
+        whereArgs: [id, shoppingListId],
+      );
+      if (changed > 1) {
+        throw StateError('Mais de um item afetado pela remoção.');
+      }
+      return changed == 1;
+    });
+  }
+
+  static Future<void> _requireList(
+    DatabaseExecutor txn,
+    String id, {
+    bool writable = false,
+  }) async {
+    _validateId(id, 'shoppingListId');
+    final rows = await txn.query(
+      'shopping_lists',
+      columns: ['status'],
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) throw ShoppingListNotFoundException(id);
+    switch (rows.single['status']) {
+      case 'active':
+        return;
+      case 'finalized':
+        if (writable) throw FinalizedShoppingListException(id);
+        return;
+      default:
+        throw const FormatException('Estado de lista inválido no banco.');
+    }
+  }
+
+  static void _validateId(String id, String field) {
+    if (id.trim().isEmpty) {
+      throw ArgumentError.value(
+        id,
+        field,
+        'O identificador não pode ser vazio.',
+      );
+    }
+  }
+
+  static ShoppingItem _itemFromRow(Map<String, Object?> row) => ShoppingItem(
+    id: row['id'] as String,
+    shoppingListId: row['shopping_list_id'] as String,
+    name: row['name'] as String,
+    plannedQuantity: row['planned_quantity'] as int?,
+    origin: switch (row['origin']) {
+      'planned' => ShoppingItemOrigin.planned,
+      'at_store' => ShoppingItemOrigin.atStore,
+      _ => throw const FormatException('Origem de item inválida no banco.'),
+    },
+    sortOrder: row['sort_order'] as int,
+    removedAt: row['removed_at_utc'] == null
+        ? null
+        : _parseUtc(row['removed_at_utc'], 'removed_at_utc'),
+  );
 
   @override
   Future<ShoppingList> createList({

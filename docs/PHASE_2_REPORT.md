@@ -56,3 +56,70 @@ Q-001 a Q-007 permanecem abertas nos seus momentos previstos. Não há decisão 
 Numa branch de treino ou cópia, escreva um teste criando `Ovos` com quantidade 12 e outro sem quantidade. Confira que os valores são 12 e null. Rode apenas o teste do modelo; não é necessário alterar o aplicativo nem seus dados.
 
 **Próxima tarefa pequena sugerida:** F2-02 — persistência de itens com migração incremental e testes de integridade. Não iniciada nesta entrega.
+
+## F2-02 — Persistência de itens
+
+**Data:** 10/11/2026. **Status:** concluída no backend. F2-03/04/05 permanecem pendentes. Relato F2-01 acima é histórico; esta seção descreve o avanço posterior.
+
+### Problema resolvido e escopo
+
+O aplicativo ganhou a base para guardar nomes/quantidades de produtos sem rede e recuperá-los depois. A UI ainda é a de listas; o cadastro visual será conectado na F2-03. Quantidade ausente continua null em todo o percurso, inclusive ao retirar um planejamento existente. Renomear não troca identidade, vínculo, origem ou posição.
+
+### Arquivos alterados
+
+- `lib/core/database/migrations/v2.dart`: tabela de itens, restrições, FK/cascade e índice único de posição por lista.
+- `lib/core/database/app_database.dart`: versão 2 e aplicação incremental de v1/v2, dentro das transações do sqflite. A migração v1 publicada não foi alterada.
+- `lib/features/shopping/domain/shopping_repository.dart`: contrato de criar/ler/editar/remover item, gerar ID e erros específicos de ausência/conflito/remoção.
+- `lib/features/shopping/data/sqlite_shopping_repository.dart`: implementação transacional, mapeamento privado, ID estável e recusa de alteração em finalizadas.
+- `test/database/items_migration_test.dart`: 6 testes de preservação/compatibilidade/esquema/restrições.
+- `test/database/shopping_items_repository_test.dart`: 25 testes de CRUD, falhas, concorrência, reabertura e invariantes.
+- `test/database/app_database_test.dart`: regressão adaptada à versão corrente e fixture de versão futura, mantendo a finalidade das asserções.
+- `integration_test/database_smoke_test.dart`: regressão e quatro novos cenários SQLite nativos.
+- `test/support/fake_shopping_repository.dart`: operações de itens explicitamente não suportadas no fake exclusivo de listas.
+- README, TASKS, TESTING, ARCHITECTURE, DECISIONS e este relatório: progresso, contratos, decisões técnicas, comandos e limites reais.
+
+### Caminho dos dados e escolhas técnicas
+
+**Chamador/teste → ShoppingRepository → modelo valida → transação SQLite verifica lista ativa → grava → commit → resultado confirmado.** A futura tela/ViewModel vai usar esse contrato, sem SQL em widgets. Cada tentativa da mesma inclusão mantém o ID; mesmo ID/dados retorna o registro já salvo, enquanto conteúdo/vínculo diferente gera conflito, sem upsert/replace. Um novo item legítimo usa outro ID, mesmo se o nome se repetir.
+
+`updateItem` exige `plannedQuantity` na chamada, mas aceita null para limpá-la. Somente nome/quantidade são alterados. Se lista estiver finalizada, mesmo um retry ou remoção de item ausente é recusado antes de gravar. Ausência de lista não é tratada como coleção vazia. Erros SQL propagam; ninguém recebe sucesso antes do commit.
+
+Posição é MAX+1 por lista dentro da transação, incluindo removidos; índice único e verificação de int64 protegem colisão/overflow. Isso é base de armazenamento, sem implementar comportamento visual de ordem F2-04. Remoção marca a data UTC, preservando os demais campos; repetição retorna false sem regravar o instante. A leitura devolve todos os registros, inclusive removidos, em coleção imutável. F2-05 ligará essa marca à ocultação no conjunto visível; cálculo de preços/totais continua para fases posteriores. Não há método Desfazer nem decisão sobre prazo.
+
+### Migração, dados existentes e compatibilidade
+
+V2 acrescenta somente `shopping_items` e seu índice; não reescreve listas nem força igualdade de caixa/calculado. Instalação nova executa v1 e v2; upgrade da v1 executa apenas v2. Transação do callback sqflite inclui DDL e versão. O teste provoca colisão do nome do índice após a tabela criar: a abertura falha, a versão continua 1, listas sobrevivem e uma nova tentativa após corrigir **somente a fixture** funciona. Não se introduziu reparo destrutivo em produção.
+
+FK impede item órfão. Ao excluir uma lista ativa inteira pelo fluxo existente confirmado, cascade apaga os itens ligados a ela. Se outra dependência impede a exclusão, a transação reverte inclusive o cascade. Finalizadas continuam protegidas pelo repositório; exclusão histórica Q-005 permanece aberta. Abrir v2 torna o arquivo incompatível com APK antigo limitado à v1; o downgrade é recusado, sem apagar dados. Não reinstalar APK antigo como estratégia de recuperação.
+
+### Conceitos Dart/Flutter/SQLite
+
+- `Future<ShoppingItem>` representa o resultado futuro, semelhante a Task<ShoppingItem> em C#. `await` da transação entrega o objeto só quando o banco confirma.
+- `abstract interface class` mantém o contrato independente do SQLite. A implementação encapsula SQL; o fake continua restrito aos testes de listas.
+- `required int?` combina argumento obrigatório com valor opcional: o chamador precisa decidir se envia uma quantidade ou null. Evita confundir “limpar” com “não alterar”.
+- Queries com `?`/whereArgs tratam nomes com aspas como dados, sem montar SQL com conteúdo do usuário.
+- Transação é uma unidade atômica: estado da lista e escrita do item ficam juntos, impedindo que uma operação que esperou a finalização edite a compra depois.
+- FK e CHECK protegem relações/tipos no banco; validação Dart explica o domínio. Os dois níveis se complementam. UNIQUE protege posição por lista, sem proibir nomes iguais.
+- Remoção lógica preserva o registro com uma data. Não confunde dado removido com produto não comprado e permite evoluir a UX sem já decidir Desfazer.
+
+### Testes executados e limitações
+
+RED de repositório saiu 1 porque contrato/métodos/tipos ainda faltavam; nenhuma asserção rodou. Após implementar, **31 testes novos passaram**: 25 repositório e 6 migração. `flutter analyze` não encontrou problemas (13,8 s). `flutter test --reporter expanded` passou com **160/0 falhas**, mantendo os 129 anteriores. Ajustes de versão em testes refletem a migração declarada; dados esperados e invariantes não foram relaxados.
+
+No Samsung conectado, `flutter test integration_test/database_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` passou com **10 testes**, incluindo 4 novos da v2. Todos usam bancos temporários próprios; nenhum teste inspeciona ou limpa listas reais. Logs ficam no build ignorado.
+
+Regressão nativa da UI: `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` inicialmente saiu **79**, testes incompletos e erro secundário de limpeza de temporário. Inspeção ADB mostrou tela Awake/desbloqueada e nenhum crash no trecho AndroidRuntime consultado, sem comprovar causa. Repetir o mesmo comando, sem alterar código/flags/expectativas, passou com **3 testes**. Resultado final: **13 casos nativos distintos aprovados** (10 banco + 3 UI). Interrupção do executor continua como limitação real documentada, não bug de produto declarado corrigido.
+
+`flutter build apk --debug` passou em **15,0 s**, gerando a versão normal; cópia em `build/app/outputs/flutter-apk/marketlist-f2-02-debug.apk`, **193.741.371 bytes**, SHA-256 `7ac45a8515255c176bd16f8229ac8c80bc5529126d8b3a07f07aae5e84f19fc2`. Instalação `adb install -r`: **Success**; abertura `am start -W`: **Status: ok / COLD**. Cópias identificadas anteriores foram mantidas.
+
+Inspeção somente de leitura `python tool/verify_android_offline.py --adb C:\Users\Rodolpho\AppData\Local\Android\Sdk\platform-tools\adb.exe --serial RXCY300NZZH --inspect` retornou 0; árvore do APK normal mostrou Minhas listas/Nova lista/Aparência, sem erro de carregamento. Não mudou rede/listas nem equivale a repetir o roteiro offline da Fase 1. Verificação final de formatação: **33 arquivos sem alterações, saída 0**. Não foram executados build iOS/release, auditoria de acessibilidade completa ou teste de rede desligada nesta tarefa.
+
+Sem alterações em SPEC/DESIGN nem decisões de preço, duplicatas por sugestão, tema, exclusão histórica ou Desfazer. Q-001 a Q-007 continuam abertas. CT-021 ainda depende de entradas F3 para verificar que compras antigas permanecem ligadas ao renomear. UI de produto, filtros/visibilidade e total não foram antecipados.
+
+### Como validar e praticar
+
+Hoje não há controle novo no Android para cadastrar produtos. A validação desta tarefa acontece pelos testes do repositório/migração e integração nativa. Para repetir no computador: `flutter test test/database/items_migration_test.dart test/database/shopping_items_repository_test.dart`. Em Android disponível, use o comando de integração acima com --no-uninstall; depois restaure o APK normal compatível com v2.
+
+Exercício opcional em branch de treino: acrescente um cenário criando um produto com quantidade 12, edite para null e feche/reabra o banco temporário. Confira que null permanece, sem alterar dados normais nem resultados esperados dos testes existentes.
+
+**Próxima tarefa pequena sugerida:** F2-03 — ligação da UI e formulário de item. Não iniciada nesta entrega; nome continua obrigatório conforme SPEC/D-002.

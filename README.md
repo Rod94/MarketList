@@ -4,7 +4,7 @@ Repositório: [Rod94/MarketList](https://github.com/Rod94/MarketList). Branch pr
 
 Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e base nativa iOS preparada. **Fases 0 e 1 concluídas:** temas Claro/AMOLED, tela Minhas listas, criação com nome/orçamento opcional, exclusão confirmada e persistência SQLite, inclusive após reiniciar sem rede. Produtos, preços, compra, finalização e histórico pertencem às próximas fases.
 
-**F2-01 concluída em 10/11/2026:** modelo de item Dart puro, com quantidade planejada opcional (`null` não vira 1), validado por 24 testes novos. Regressão atual: **129 testes aprovados**, análise sem problemas. Ainda não há tela nem persistência de produtos; o APK da Fase 1 continua sendo a última entrega visual. Consulte o [relatório da Fase 2](docs/PHASE_2_REPORT.md).
+**F2-01/02 concluídas em 10/11/2026:** modelo de item e persistência SQLite v2 com inclusão/edição/remoção marcada. Quantidade ausente continua null; gravações em finalizadas são recusadas. Migração preserva as listas v1, sem reset. Regressão atual: **160 testes aprovados**, análise sem problemas e **13 testes nativos aprovados**. Ainda não há cadastro de produtos na interface. Consulte o [relatório da Fase 2](docs/PHASE_2_REPORT.md).
 
 ## Ambiente usado
 
@@ -42,7 +42,7 @@ flutter test integration_test --no-uninstall -d ID_ANDROID
 flutter build apk --debug
 ```
 
-O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-phase-1-debug.apk` na mesma pasta. Artefatos identificados anteriores foram preservados. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
+O APK normal mais recente fica em `build/app/outputs/flutter-apk/app-debug.apk`, com cópia `marketlist-f2-02-debug.apk` na mesma pasta, compatível com o esquema v2. Artefatos identificados anteriores foram preservados, incluindo `marketlist-phase-1-debug.apk`. Após abrir v2, não use APK antigo v1 como rollback: ele recusará a versão superior, sem apagar dados. São builds debug, sem entrega de release. Builds podem baixar Gradle/componentes Android; licenças pendentes precisam ser revisadas no ambiente de desenvolvimento.
 
 Use `--no-uninstall` na integração: o Flutter 3.47.9 desinstala o pacote por padrão ao encerrar o teste. A opção preserva a instalação e seus dados; ao terminar, gere/instale o APK normal para substituir a variante de teste. Os testes de banco/repositório usam exclusivamente arquivos temporários próprios.
 
@@ -78,6 +78,7 @@ lib/
     database/
       app_database.dart         # Abertura/versão e configuração da conexão
       migrations/v1.dart        # Somente tabela de listas e índice
+      migrations/v2.dart        # Tabela de itens, FK/cascade e posição única
   features/shopping/presentation/screens/
     shopping_lists_screen.dart  # Tela inicial e confirmação de exclusão
     scaffold_screen.dart        # Aparência, via AppBar
@@ -91,7 +92,7 @@ lib/
   features/shopping/domain/
     shopping_repository.dart    # Contrato Dart puro e erros de operação
   features/shopping/data/
-    sqlite_shopping_repository.dart # Persistência, transações e mapeamento
+    sqlite_shopping_repository.dart # Listas/itens, transações e mapeamento
 test/
   unit/                         # Estado e notificações do ViewModel
   widget/                       # Inicialização, temas e fonte ampliada
@@ -107,7 +108,7 @@ Não há diretórios vazios antecipando banco, dinheiro, checkout ou histórico.
 
 ## Documentação e escopo
 
-Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Fases 0/1 e F2-01 estão concluídas. Próxima tarefa sugerida: F2-02. Cada tarefa concluída a partir da F2-01 deve ter commit e envio ao GitHub, conforme orientação do usuário. Regras aprovadas permanecem preservadas.
+Leia `AGENTS.md` e os documentos de requisitos, design, arquitetura, decisões, testes e tarefas em `docs/` antes de implementar. Fases 0/1 e F2-01/02 estão concluídas. Próxima tarefa sugerida: F2-03. Cada tarefa concluída a partir da F2-01 deve ter commit e envio ao GitHub, conforme orientação do usuário. Regras aprovadas permanecem preservadas.
 
 `AGENTS.md` contém instruções locais, está no `.gitignore` por escolha do usuário e não é enviado ao GitHub. A documentação em `docs/` é versionada.
 

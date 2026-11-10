@@ -1,4 +1,5 @@
 import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
+import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/shopping_repository.dart';
 
 class FakeShoppingRepository implements ShoppingRepository {
@@ -18,6 +19,36 @@ class FakeShoppingRepository implements ShoppingRepository {
 
   @override
   String newListId() => 'fake-${++idCalls}';
+
+  @override
+  String newItemId() => throw UnimplementedError('Fake exclusivo de listas.');
+
+  @override
+  Future<ShoppingItem> createItem({
+    required String id,
+    required String shoppingListId,
+    required String name,
+    required ShoppingItemOrigin origin,
+    int? plannedQuantity,
+  }) => throw UnimplementedError('Fake exclusivo de listas.');
+
+  @override
+  Future<List<ShoppingItem>> listItems(String shoppingListId) =>
+      throw UnimplementedError('Fake exclusivo de listas.');
+
+  @override
+  Future<ShoppingItem> updateItem({
+    required String id,
+    required String shoppingListId,
+    required String name,
+    required int? plannedQuantity,
+  }) => throw UnimplementedError('Fake exclusivo de listas.');
+
+  @override
+  Future<bool> removeItem({
+    required String id,
+    required String shoppingListId,
+  }) => throw UnimplementedError('Fake exclusivo de listas.');
 
   @override
   Future<List<ShoppingList>> listActiveLists() async {

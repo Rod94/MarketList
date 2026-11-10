@@ -1,6 +1,6 @@
 # TESTING.md — Estratégia e casos de teste do aplicativo de supermercado
 
-**Versão:** 0.7 — Fases 0/1 e domínio F2-01 testados
+**Versão:** 0.8 — Fases 0/1 e F2-01/02 testadas
 
 **Data:** 10/11/2026 (catálogo original: 07/11/2026)
 **Referências:** `SPEC.md`, `DESIGN.md`, `ARCHITECTURE.md`, `TASKS.md`
@@ -382,3 +382,30 @@ Comandos efetivamente executados, SDK Flutter 3.47.9/Dart 3.13.7 instalado:
 - `flutter test --reporter expanded`: saída 0, **129 aprovados/0 falhas** (105 anteriores + 24 novos).
 
 Não houve falha de asserção nem mudança de expectativa para acomodar implementação. Integração Android, novo build/APK, teste offline físico e iOS **não executados nesta tarefa**: somente domínio ainda não ligado ao app foi acrescentado, sem alteração de UI, banco ou código nativo. Os resultados nativos da Fase 1 são históricos, não execuções desta entrega. O APK anterior continua sendo o último visualmente utilizável.
+
+## 19. Execução F2-02 — migração e repositório de itens, 10/11/2026
+
+Requisitos: RF-02/09, CT-004/006/049, integridade de lista ativa CT-046. CT-005 valida marcação persistida, não ocultação em UI. CT-021 valida vínculo/identidade ao renomear, ainda sem entradas de compra. F2-03/04/05 continuam pendentes nos seus critérios visuais/completos.
+
+- `test/database/items_migration_test.dart`: **6 novos casos** com SQLite real. V1 publicada→v2 mantém todas as colunas/totais/datas, instalação nova tem mesmo esquema que upgrade, falha após tabela criada reverte DDL/versão e preserva v1, FK/cascade, CHECKs e unicidade. Não há exclusão/recriação de banco como recuperação.
+- `test/database/shopping_items_repository_test.dart`: **25 novos casos**, incluindo criação/retry/conflito/UUID, null→1→5→null, renomeação com identidade/posição/origem preservadas, remoção UTC idempotente, isolamento por lista, ausentes/finalizadas, reabertura, falha SQL/retry, cascade atômico, concorrência, limite de posição e dado corrompido sem reparo destrutivo.
+- Testes de banco anteriores passam a conferir a versão atual e duas tabelas; fixture de downgrade usa versão atual+1. Asserções sobre preservação, rollback, FK e falhas continuam. O arquivo v1 não mudou.
+- `test/support/fake_shopping_repository.dart` declara as novas operações não suportadas: continua exclusivo dos testes de UI de listas, sem simular itens com uma implementação alternativa.
+
+Execuções reais:
+
+1. **RED:** `flutter test test/database/shopping_items_repository_test.dart --reporter expanded`: saída 1 por métodos/tipos ainda ausentes, nenhuma asserção executada. Log `build/f2-02-red.log`.
+2. `dart format lib test/database/shopping_items_repository_test.dart test/database/items_migration_test.dart test/support/fake_shopping_repository.dart`: 22 arquivos processados/5 ajustados. Depois `dart format lib test integration_test`: 33/2 ajustados.
+3. `flutter test test/database/shopping_items_repository_test.dart test/database/items_migration_test.dart --reporter expanded`: **31 aprovados**, saída 0. Log `build/f2-02-green.log`.
+4. `flutter analyze`: **No issues found!**, 13,8 s, saída 0.
+5. `flutter test --reporter expanded`: **160 aprovados/0 falhas** (129 anteriores + 31 novos), saída 0. Log `build/f2-02-regression.log`.
+6. ADB encontrou Samsung SM-S936B `RXCY300NZZH` disponível. `flutter test integration_test/database_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose`: **10 aprovados**, saída 0. São 6 regressões + 4 novos cenários: upgrade/preservação, rollback/retry, CRUD/reabertura/null/concorrência/cascade e falha SQL/bloqueio de finalizada. Log `build/f2-02-android-db.log`.
+7. `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose`: primeira execução incompleta, saída **79**, sem testes concluídos e erro secundário de limpeza de temporário. Diagnóstico mostrou tela Awake/desbloqueada e nenhum crash AndroidRuntime no trecho consultado; não comprova causa. Repetição **do mesmo comando**, sem mudar código, flags ou expectativas: **3 aprovados**, saída 0. Logs `build/f2-02-android-ui.log` e `build/f2-02-android-ui-retry.log`. Causa original da interrupção continua sem confirmação.
+
+Total nativo desta entrega: **13 casos distintos aprovados** (10 banco + 3 interface). A tentativa incompleta não é contada como aprovada.
+
+8. `flutter build apk --debug`: aprovado em **15,0 s**. Cópia normal `marketlist-f2-02-debug.apk` com 193.741.371 bytes; SHA-256 `7ac45a8515255c176bd16f8229ac8c80bc5529126d8b3a07f07aae5e84f19fc2`. `adb install -r` retornou **Success** e `am start -W` **Status: ok / COLD**. Artefatos anteriores preservados.
+9. `python tool/verify_android_offline.py --adb C:\Users\Rodolpho\AppData\Local\Android\Sdk\platform-tools\adb.exe --serial RXCY300NZZH --inspect`: saída 0, árvore identificou Minhas listas/Nova lista/Aparência, sem erro de carga. Inspeção somente de leitura, sem modificar rede/listas e sem alegar novo teste offline.
+10. `dart format --output=none --set-exit-if-changed .`: saída 0, **33 arquivos sem alterações**.
+
+Integração usa subpasta temporária exclusiva sob getDatabasesPath, com resolução/validação de raiz antes da limpeza. Não abre nem apaga o banco normal; `--no-uninstall` mantém a instalação e seus dados. Mudança de status para finalizada é fixture, não implementação da F5. Testes de interrupção de rede em aparelho normal/iOS não foram repetidos nesta tarefa. Não há preço, total de compra, formulário de item ou política de Desfazer implementados.

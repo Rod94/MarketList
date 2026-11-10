@@ -46,7 +46,7 @@ Este documento registra *o que decidimos* e separa essas decisões de propostas 
 | P-003 | SQLite com `sqflite` — adotado na F1-02 | Banco/migração inicial testados em Windows/Android; detalhes na seção 8 |
 | P-004 | Usar `int` em centavos, com parser e formatação `pt-BR` | Regra técnica de precisão; detalhar limites e validação |
 | P-005 | Navegação com `Navigator` no início | Avaliar `go_router` só se rotas realmente demandarem |
-| P-006 | Soft delete para item removido, com possibilidade de desfazer | Precisamos fechar o comportamento de UX |
+| P-006 | Soft delete adotado no armazenamento F2-02; possibilidade de desfazer ainda proposta | Remoção preserva dados; UX, ocultação e desfazer continuam para tarefas posteriores |
 
 **Recomendação:** essas propostas constam em `ARCHITECTURE.md`; confirmar durante Fase 0/1 e atualizar status aqui, sem adicionar bibliotecas por hábito.
 
@@ -164,3 +164,17 @@ Nenhuma regra de compra/preço foi alterada; Q-001 a Q-007 seguem abertas para s
 - Esquema/versão v1 e dados existentes não mudaram. A futura tabela de itens exigirá migração incremental e testes de preservação na F2-02. Q-001 a Q-007 continuam abertas.
 
 Execução e aprendizado: `PHASE_2_REPORT.md` e seção 18 de `TESTING.md`. Orientação do usuário registrada em TASKS: um commit/envio ao GitHub por tarefa concluída a partir desta.
+
+## 12. Registro técnico F2-02 — 10/11/2026
+
+- Banco passa a **v2**, com tabela `shopping_items` e índice único `(shopping_list_id, sort_order)`. A v1 publicada permanece intacta. Instalação nova aplica v1 e v2; onUpgrade aplica somente v2 para versão anterior, dentro da transação do sqflite. Falha reverte DDL/versão e preserva dados, sem reset/recriação. Bancos mais novos continuam recusados.
+- Migração não reescreve listas nem altera orçamento, total calculado ou caixa. Testes criam v1 usando o próprio arquivo publicado e comparam todas as colunas antes/depois; também comparam os esquemas de instalação nova/upgrade. Atualizar fixtures antigas para versão atual/futura é consequência do avanço do esquema, não ajuste para esconder falha.
+- FK de item exige pai existente. `ON DELETE CASCADE` concretiza exclusão de **lista ativa inteira** já autorizada/confirmada no fluxo atual, eliminando seus dependentes sem órfãos. Alternativa: excluir filhos manualmente na transação do repositório. Cascade mantém a regra referencial junto ao esquema; restrições adicionais ainda fazem toda a exclusão falhar/reverter. O repositório continua recusando apagar listas finalizadas; não se resolveu Q-005 nem se implementou trigger de exclusão histórica.
+- `ShoppingRepository` passa a gerar ID de item, criar, ler, editar e marcar remoção. Mesmo ID/dados normalizados retorna o item existente; payload/vínculo diferente gera conflito. ID de removido não é reutilizado/ressuscitado. Nomes iguais com IDs distintos continuam válidos, sem resolver Q-003. O chamador deverá manter o ID durante retry, como nas listas.
+- `updateItem` exige quantidade **explicitamente nullable**: null limpa o planejamento. A API não aceita origem/vínculo/posição novos, evitando mover ou reinserir o item ao renomear. Ausência, remoção e conflito têm erros específicos. Não se cria/edita/remove em lista ausente ou finalizada; estado é consultado na mesma transação da escrita. Erro SQL propaga e sucesso só retorna após commit.
+- A posição é atribuída como MAX+1 dentro da transação, considerando também removidos; índice único protege colisões. A ausência de posição anterior inicia em zero. O limite int64 é verificado antes da soma. Isso é o mínimo necessário para persistir o modelo obrigatório, não entrega da experiência visual F2-04.
+- Remoção grava uma única data UTC em `removed_at_utc`, preservando o resto. Repetição retorna false, sem trocar o instante. É a base de persistência prevista em ARCHITECTURE, escolhida em vez de exclusão física que destruiria o registro necessário às fases futuras. Q-004 não bloqueia essa base: não existe método de restaurar, prazo ou botão Desfazer nesta tarefa.
+- `listItems` devolve coleção imutável por lista, incluindo removidos, ordenada pela posição persistida. É leitura de registros, **não** conjunto visível/filtro de compra. Ocultação na UI e exclusão de totais continuam para F2-05/F3/F4; não há cálculos/preços ainda. Leitura de finalizada é permitida, sem implementar histórico.
+- Mapeamento de itens permanece privado no repositório e reutiliza a validação UTC estrita já existente. Dados inválidos falham explicitamente sem descartar/reparar linhas. O fake de listas dos testes declara as novas operações não suportadas, sem introduzir falsa persistência de itens.
+
+Nenhuma regra de negócio aprovada foi substituída. Q-001 a Q-007 permanecem abertas. Risco de compatibilidade: após abrir v2, o APK antigo limitado à v1 não deve ser reinstalado como rollback; ele recusará o downgrade sem apagar dados. Continuar com APK compatível ou migração futura, nunca limpar banco como reparo.

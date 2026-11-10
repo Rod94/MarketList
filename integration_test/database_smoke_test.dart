@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:market_list/core/database/app_database.dart';
+import 'package:market_list/core/database/migrations/v1.dart';
 import 'package:market_list/features/shopping/data/sqlite_shopping_repository.dart';
+import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/shopping_repository.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -64,7 +66,7 @@ void main() {
     final results = await Future.wait([openApp(), openApp()]);
     expect(identical(results[0], results[1]), isTrue);
     var db = results.first;
-    expect(await db.getVersion(), 1);
+    expect(await db.getVersion(), AppDatabase.schemaVersion);
     expect((await db.rawQuery('PRAGMA foreign_keys')).single.values.single, 1);
     await db.execute('''
       CREATE TABLE test_children (
@@ -89,7 +91,7 @@ void main() {
     await db.close();
 
     db = await openApp();
-    expect(await db.getVersion(), 1);
+    expect(await db.getVersion(), AppDatabase.schemaVersion);
     expect((await db.query('shopping_lists')).single, expected);
     expect((await db.rawQuery('PRAGMA foreign_keys')).single.values.single, 1);
     await db.insert('test_children', {'list_id': 'native-list'});
@@ -120,7 +122,7 @@ void main() {
     await db.close();
 
     db = await openApp();
-    expect(await db.getVersion(), 1);
+    expect(await db.getVersion(), AppDatabase.schemaVersion);
     expect((await db.query('preserved')).single['value'], 'não apagar');
   });
 
@@ -128,7 +130,7 @@ void main() {
     tester,
   ) async {
     var db = await openRaw(
-      version: 2,
+      version: AppDatabase.schemaVersion + 1,
       onCreate: (db, _) async {
         await db.execute('CREATE TABLE future_data (value TEXT NOT NULL)');
       },
@@ -138,7 +140,7 @@ void main() {
 
     await expectLater(appDatabase.open(), throwsArgumentError);
     db = await openRaw();
-    expect(await db.getVersion(), 2);
+    expect(await db.getVersion(), AppDatabase.schemaVersion + 1);
     expect((await db.query('future_data')).single['value'], 'versão futura');
   });
 
@@ -197,6 +199,180 @@ void main() {
         throwsA(isA<FinalizedShoppingListException>()),
       );
       expect(await db.query('shopping_lists'), before);
+    },
+  );
+
+  testWidgets(
+    'F2-02 Android: migra v1 publicada sem alterar listas históricas',
+    (tester) async {
+      var db = await openRaw(
+        version: 1,
+        onCreate: (db, _) => createSchemaV1(db),
+      );
+      final expected = <String, Object?>{
+        'id': 'legacy',
+        'name': 'Compra anterior',
+        'status': 'finalized',
+        'created_at_utc': '2026-11-09T12:00:00.000Z',
+        'finalized_at_utc': '2026-11-09T14:00:00.000Z',
+        'budget_cents': 50000,
+        'finalized_registered_total_cents': 52780,
+        'checkout_paid_cents': 53020,
+      };
+      await db.insert('shopping_lists', expected);
+      await db.close();
+      db = await openApp();
+      expect(await db.getVersion(), 2);
+      expect((await db.query('shopping_lists')).single, expected);
+      expect(await db.query('shopping_items'), isEmpty);
+      await db.close();
+      db = await openApp();
+      expect((await db.query('shopping_lists')).single, expected);
+    },
+  );
+
+  testWidgets('F2-02 Android: falha de upgrade reverte v2 e permite retry', (
+    tester,
+  ) async {
+    var db = await openRaw(version: 1, onCreate: (db, _) => createSchemaV1(db));
+    await db.insert('shopping_lists', {
+      'id': 'legacy',
+      'name': 'Preservar',
+      'status': 'active',
+      'created_at_utc': '2026-11-09T12:00:00.000Z',
+    });
+    final before = await db.query('shopping_lists');
+    await db.execute(
+      'CREATE INDEX shopping_items_by_list_sort_order ON shopping_lists(name)',
+    );
+    await db.close();
+    await expectLater(appDatabase.open(), throwsA(isA<DatabaseException>()));
+    db = await openRaw();
+    expect(await db.getVersion(), 1);
+    expect(await db.query('shopping_lists'), before);
+    expect(
+      await db.rawQuery('SELECT name FROM sqlite_master WHERE name = ?', [
+        'shopping_items',
+      ]),
+      isEmpty,
+    );
+    await db.execute('DROP INDEX shopping_items_by_list_sort_order');
+    await db.close();
+    db = await openApp();
+    expect(await db.getVersion(), 2);
+    expect(await db.query('shopping_lists'), before);
+  });
+
+  testWidgets(
+    'F2-02 Android: CRUD de itens, null, concorrência, reabertura e cascade',
+    (tester) async {
+      var db = await openApp();
+      final now = DateTime.utc(2026, 11, 10, 12);
+      final repository = SqliteShoppingRepository(appDatabase, now: () => now);
+      await repository.createList(id: 'list', name: 'Compra');
+      Future<ShoppingItem> create() => repository.createItem(
+        id: 'item',
+        shoppingListId: 'list',
+        name: "Carne d'água",
+        origin: ShoppingItemOrigin.planned,
+      );
+      await Future.wait([create(), create()]);
+      expect((await db.query('shopping_items')).length, 1);
+      expect(
+        (await repository.listItems('list')).single.plannedQuantity,
+        isNull,
+      );
+      for (final quantity in <int?>[1, 5, null]) {
+        await repository.updateItem(
+          id: 'item',
+          shoppingListId: 'list',
+          name: 'Carne bovina',
+          plannedQuantity: quantity,
+        );
+        expect(
+          (await repository.listItems('list')).single.plannedQuantity,
+          quantity,
+        );
+      }
+      await db.close();
+      db = await openApp();
+      expect((await repository.listItems('list')).single.name, 'Carne bovina');
+      expect(
+        await repository.removeItem(id: 'item', shoppingListId: 'list'),
+        isTrue,
+      );
+      expect(
+        await repository.removeItem(id: 'item', shoppingListId: 'list'),
+        isFalse,
+      );
+      expect((await repository.listItems('list')).single.removedAt, now);
+      expect(await repository.removeActiveList('list'), isTrue);
+      expect(await db.query('shopping_items'), isEmpty);
+      expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'F2-02 Android: falha SQL preserva item e finalizada bloqueia gravações',
+    (tester) async {
+      final db = await openApp();
+      final repository = SqliteShoppingRepository(appDatabase);
+      await repository.createList(id: 'list', name: 'Compra');
+      Future<ShoppingItem> create({String id = 'item'}) =>
+          repository.createItem(
+            id: id,
+            shoppingListId: 'list',
+            name: 'Carne',
+            origin: ShoppingItemOrigin.planned,
+          );
+      await create();
+      final before = await db.query('shopping_items');
+      await db.execute(
+        '''CREATE TRIGGER fail_item BEFORE UPDATE ON shopping_items
+      BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END''',
+      );
+      await expectLater(
+        repository.updateItem(
+          id: 'item',
+          shoppingListId: 'list',
+          name: 'Outro',
+          plannedQuantity: 1,
+        ),
+        throwsA(isA<DatabaseException>()),
+      );
+      await expectLater(
+        repository.removeItem(id: 'item', shoppingListId: 'list'),
+        throwsA(isA<DatabaseException>()),
+      );
+      expect(await db.query('shopping_items'), before);
+      await db.execute('DROP TRIGGER fail_item');
+      await db.update('shopping_lists', {
+        'status': 'finalized',
+        'finalized_at_utc': DateTime.now().toUtc().toIso8601String(),
+        'finalized_registered_total_cents': 0,
+      });
+      await expectLater(
+        create(),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      await expectLater(
+        create(id: 'new'),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      await expectLater(
+        repository.updateItem(
+          id: 'item',
+          shoppingListId: 'list',
+          name: 'Outro',
+          plannedQuantity: 1,
+        ),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      await expectLater(
+        repository.removeItem(id: 'item', shoppingListId: 'list'),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      expect(await db.query('shopping_items'), before);
     },
   );
 

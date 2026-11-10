@@ -68,16 +68,19 @@ void main() {
   });
 
   test(
-    'F1-02: cria versão 1 com somente a tabela de listas e seu índice',
+    'F1-02/F2-02: cria versão atual com listas e itens, sem tabelas futuras',
     () async {
       final db = await openApp();
 
-      expect(await db.getVersion(), 1);
+      expect(await db.getVersion(), AppDatabase.schemaVersion);
       final tables = await db.rawQuery(
         "SELECT name FROM sqlite_master WHERE type = ? AND name NOT LIKE 'sqlite_%'",
         ['table'],
       );
-      expect(tables.map((row) => row['name']), ['shopping_lists']);
+      expect(tables.map((row) => row['name']), [
+        'shopping_lists',
+        'shopping_items',
+      ]);
       final columns = await db.rawQuery('PRAGMA table_info(shopping_lists)');
       expect(columns.map((row) => row['name']), [
         'id',
@@ -138,7 +141,7 @@ void main() {
       await db.close();
 
       db = await openApp();
-      expect(await db.getVersion(), 1);
+      expect(await db.getVersion(), AppDatabase.schemaVersion);
       expect((await db.query('shopping_lists')).single, expected);
       expect(
         (await db.rawQuery('PRAGMA foreign_keys')).single.values.single,
@@ -151,7 +154,7 @@ void main() {
     final results = await Future.wait([openApp(), openApp(), openApp()]);
     expect(identical(results[0], results[1]), isTrue);
     expect(identical(results[1], results[2]), isTrue);
-    expect(await results.first.getVersion(), 1);
+    expect(await results.first.getVersion(), AppDatabase.schemaVersion);
   });
 
   test('F1-02: ID é obrigatório, não vazio e único', () async {
@@ -321,7 +324,7 @@ void main() {
       await db.execute('DROP INDEX shopping_lists_by_status_created_at');
       await db.close();
       db = await openApp();
-      expect(await db.getVersion(), 1);
+      expect(await db.getVersion(), AppDatabase.schemaVersion);
       expect((await db.query('preserved')).single['value'], 'não apagar');
     },
   );
@@ -330,7 +333,7 @@ void main() {
     'F1-02 / CT-049 parcial: recusa downgrade sem apagar dados mais novos',
     () async {
       var db = await openRaw(
-        version: 2,
+        version: AppDatabase.schemaVersion + 1,
         onCreate: (db, _) async {
           await db.execute('CREATE TABLE future_data (value TEXT NOT NULL)');
         },
@@ -340,7 +343,7 @@ void main() {
 
       await expectLater(appDatabase.open(), throwsArgumentError);
       db = await openRaw();
-      expect(await db.getVersion(), 2);
+      expect(await db.getVersion(), AppDatabase.schemaVersion + 1);
       expect(
         (await db.query('future_data')).single['value'],
         'preservar versão futura',
