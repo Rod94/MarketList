@@ -1,6 +1,6 @@
 # TASKS.md — Plano incremental de desenvolvimento
 
-**Versão:** 0.9 — Fases 0 e 1 concluídas; F2-01/02/03 concluídas
+**Versão:** 0.10 — Fases 0 e 1 concluídas; F2-01 a F2-04 concluídas
 
 **Data:** 10/11/2026 (plano original: 07/11/2026)
 **Fontes de verdade:** `SPEC.md` (regras), `DESIGN.md` (interação), `ARCHITECTURE.md` (estrutura), `TESTING.md` (casos), `DECISIONS.md` (decisões).
@@ -66,7 +66,7 @@
 | F2-01 | Modelo de item e campo `plannedQuantity?` | Testar que `null` ≠ 1 | **Feito:** modelo Dart puro imutável; 24 testes novos aprovados, regressão com 129 aprovados, analyze sem problemas |
 | F2-02 | Adicionar/editar/remover item com persistência | CT-004 a CT-006, CT-021 conforme aplicável | **Feito:** migração v1→v2, CRUD transacional com remoção marcada, retry e bloqueio de finalizadas; 31 testes novos SQLite, regressão com 160 aprovados e 13 nativos aprovados (10 banco + 3 UI após tentativa interrompida do runner) |
 | F2-03 | Formulário compacto com nome obrigatório e quantidade opcional | UX-001/UX-002 na fatia de planejamento; sem exigir marca, foto nem categoria | **Feito:** navegação, inclusão/edição persistida, formulário acessível com teclado, erros/retry e proteção de gravação; 16 novos testes, regressão 176 aprovados |
-| F2-04 | Ordenação estável por `sortOrder` | Item não muda de posição após edição | Pendente |
+| F2-04 | Ordenação estável por `sortOrder` | Item não muda de posição após edição | **Feito:** comparador puro, carga/cache ordenados e identidade preservada; 5 novos testes, regressão com 181 aprovados |
 | F2-05 | Remoção lógica com redução do conjunto visível | CT-005, CT-050; política de `Desfazer` só depois de decisão | Pendente |
 
 **Escopo F2-01:** representação dos campos documentados, incluindo origem, posição e data de remoção; nenhum fluxo de ordenação/remoção, CRUD, migração ou tela de produto foi antecipado. CT-006/UX-002 têm cobertura apenas da semântica do modelo. Evidências e explicação: `PHASE_2_REPORT.md`.
@@ -162,6 +162,6 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**F2-03 entregue.** Próxima tarefa pequena: **F2-04 — ordenação estável de itens**. Usuário autorizou concluir toda a Fase 2, mantendo uma tarefa e um commit/envio por vez. Nome obrigatório foi corrigido no rótulo da tarefa para corresponder a SPEC/D-002, sem mudar a regra. Campo de preço/subtotal só será introduzido na F3; UX-001 está coberto nesta fase somente para nome/quantidade juntos. Sem preços, compra, finalização ou histórico.
+**F2-04 entregue.** Próxima tarefa pequena: **F2-05 — remoção lógica e conjunto visível**. Usuário autorizou concluir toda a Fase 2, mantendo uma tarefa e um commit/envio por vez. Campo de preço/subtotal só será introduzido na F3; UX-001 está coberto nesta fase somente para nome/quantidade juntos. Sem preços, compra, finalização ou histórico.
 
-**Estado atual:** Fases 0/1 e F2-01/02/03 **feitas**, com limites documentados; F2-04/05 **pendentes, autorizadas como próximas tarefas**. Fase 3 não iniciada. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos antigos de ausência de `.git` e de UI de produtos inexistente são históricos.
+**Estado atual:** Fases 0/1 e F2-01 a F2-04 **feitas**; F2-05 **pendente e autorizada como próxima tarefa**. Fase 3 não iniciada. `AGENTS.md`, bancos, APKs e logs continuam ignorados. Relatos antigos de ausência de `.git` e de UI de produtos inexistente são históricos.

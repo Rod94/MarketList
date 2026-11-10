@@ -7,6 +7,7 @@ import 'package:market_list/app/app.dart';
 import 'package:market_list/core/database/app_database.dart';
 import 'package:market_list/core/preferences/theme_preference.dart';
 import 'package:market_list/features/shopping/data/sqlite_shopping_repository.dart';
+import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -43,6 +44,49 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Minhas listas'), findsOneWidget);
   }
+
+  testWidgets(
+    'F2-04 Android: editar produto no meio mantém posição após reabrir tela',
+    (tester) async {
+      await repository.createList(id: 'order', name: 'Ordem Android');
+      for (final name in ['Zebra', 'Leite', 'Arroz']) {
+        await repository.createItem(
+          id: name,
+          shoppingListId: 'order',
+          name: name,
+          origin: ShoppingItemOrigin.planned,
+        );
+      }
+      await openApp(tester);
+      await tester.tap(find.text('Ordem Android'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Leite'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('item-name')),
+        'Abacate',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-item')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ordem Android'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getTopLeft(find.text('Zebra')).dy,
+        lessThan(tester.getTopLeft(find.text('Abacate')).dy),
+      );
+      expect(
+        tester.getTopLeft(find.text('Abacate')).dy,
+        lessThan(tester.getTopLeft(find.text('Arroz')).dy),
+      );
+      expect((await repository.listItems('order')).map((item) => item.id), [
+        'Zebra',
+        'Leite',
+        'Arroz',
+      ]);
+    },
+  );
 
   testWidgets('F2-03 Android: inclui e edita produto com quantidade opcional', (
     tester,

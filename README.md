@@ -8,6 +8,8 @@ Aplicativo de supermercado Flutter/Dart, com Android como primeira plataforma e 
 
 **F2-03:** toque em uma lista para abrir seus produtos. Adicionar produto aceita nome obrigatório e quantidade opcional; tocar no produto permite editar/limpar quantidade. Gravação confirmada atualiza a tela, falha mantém os campos. Regressão: **176 testes aprovados**. Ordem/remoção visual são as próximas tarefas; preços/totais continuam para F3. Os relatos F2-01/02 acima descrevem a etapa anterior.
 
+**F2-04:** ordem de cadastro preservada após editar/renomear/recarregar; regressão com **181 testes aprovados**, análise sem problemas. Remoção visual é a próxima tarefa autorizada.
+
 ## Ambiente usado
 
 - Flutter **3.47.9 stable**, Dart **3.13.7**; Provider **6.1.5+1**.

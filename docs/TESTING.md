@@ -422,3 +422,11 @@ Integração usa subpasta temporária exclusiva sob getDatabasesPath, com resolu
 UX-001 está coberto na fatia de planejamento (nome/quantidade juntos); campo de preço só F3. Sem migração ou alteração das regras de dinheiro, sem alegar UX de compra completa.
 
 Resultado F2-03 no Samsung: `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` → **5 aprovados**, saída 0. `flutter build apk --debug` → aprovado em 12,7 s; APK normal F2-03 instalado (**Success**) e aberto (**Status: ok**), preservando dados. Sem build iOS/release ou repetição de modo avião. Logs/artefatos ignorados pelo Git.
+
+## 21. F2-04 — ordem estável, 10/11/2026
+
+RED: `flutter test test/unit/shopping_item_test.dart --reporter expanded` saiu 1 porque o comparador ainda não existia, sem executar asserções (build/f2-04-red.log). Após implementar, `flutter analyze` passou sem problemas e `flutter test --reporter expanded` aprovou **181 testes/0 falhas** (176 anteriores + 5 novos), log build/f2-04-regression.log.
+
+Novos casos: 2 de comparador (posição antes de nome/quantidade e desempate), 1 de ViewModel com carga fora de ordem/edição, 1 widget verificando posição vertical após renomear/recarregar e 1 SQLite com edição/reabertura/posição seguinte. `dart format .`: 39 arquivos, 4 formatados nos testes. Integração acrescentou um cenário visual equivalente com SQLite real; resultado no relatório da fase. Sem alterações no esquema, entrada de compra ou cálculo. UX-011 após **comprar** depende de F3; aqui se comprova estabilidade durante planejamento/edição.
+
+F2-04 Android: `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose` → **6 aprovados**, saída 0, log build/f2-04-android-ui.log. `flutter build apk --debug` → aprovado em 11,2 s; APK normal F2-04 instalado/aberto com Success/Status: ok.

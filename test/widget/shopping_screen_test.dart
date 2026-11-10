@@ -31,6 +31,45 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('F2-04 editar item no meio mantém a linha após recarregar', (
+    tester,
+  ) async {
+    repository.items.addAll([
+      for (final i in [2, 0, 1])
+        ShoppingItem(
+          id: 'i$i',
+          shoppingListId: 'list',
+          name: ['Zebra', 'Leite', 'Arroz'][i],
+          origin: ShoppingItemOrigin.planned,
+          sortOrder: i,
+        ),
+    ]);
+    await open(tester);
+    expect(
+      tester.getTopLeft(find.text('Zebra')).dy,
+      lessThan(tester.getTopLeft(find.text('Leite')).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Leite')).dy,
+      lessThan(tester.getTopLeft(find.text('Arroz')).dy),
+    );
+    await tester.tap(find.text('Leite'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('item-name')), 'Abacate');
+    await tester.tap(find.byKey(const ValueKey('save-item')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Atualizar produtos'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.text('Zebra')).dy,
+      lessThan(tester.getTopLeft(find.text('Abacate')).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Abacate')).dy,
+      lessThan(tester.getTopLeft(find.text('Arroz')).dy),
+    );
+  });
+
   testWidgets(
     'F2-03 abre lista e inclui nome sozinho sem quantidade implícita',
     (tester) async {

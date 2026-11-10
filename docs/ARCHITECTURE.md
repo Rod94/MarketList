@@ -422,3 +422,5 @@ Fluxo nesta entrega: chamador/teste → repositório → domínio valida → tra
 ShoppingListsScreen abre ShoppingScreen via Navigator. Cada rota possui ShoppingItemsViewModel/ChangeNotifier, que carrega registros confirmados e controla rascunho/erros/ID estável. ItemFormSheet possui somente TextEditingControllers/layout; item_quantity_input.dart faz parsing puro. O repositório e o banco v2 não mudaram.
 
 Fluxo: toque na lista → Provider cria ViewModel → carga SQLite → tela; Adicionar/toque no produto → formulário → ViewModel valida → repositório confirma → cache imutável → fechamento/sucesso. Falha mantém os campos, sem confirmação antecipada. A ordenação explícita/projeção de removidos serão acrescentadas nas tarefas seguintes. O fake de testes agora fornece operações de itens controláveis; produção continua usando SQLite real.
+
+F2-04 acrescentou `ShoppingItem.compareBySortOrder` e ordenação de cópias na carga/cache do ViewModel. Banco mantém posições; UI usa chaves por ID. Nome/quantidade não entram no comparador. Projeção de removidos permanece para F2-05.

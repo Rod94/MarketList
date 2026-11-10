@@ -99,6 +99,19 @@ void main() {
     },
   );
 
+  test('F2-04: edição no meio e reabertura preservam ordem original', () async {
+    await create(id: 'first', name: 'Zebra');
+    await create(id: 'middle', name: 'Leite');
+    await create(id: 'last', name: 'Arroz');
+    await update(id: 'middle', name: 'Abacate', quantity: 5);
+    await db.close();
+    db = await appDatabase.open();
+    final loaded = await repository.listItems('list-001');
+    expect(loaded.map((i) => i.id), ['first', 'middle', 'last']);
+    expect(loaded.map((i) => i.sortOrder), [0, 1, 2]);
+    expect((await create(id: 'next')).sortOrder, 3);
+  });
+
   test('IDs novos são UUID v4 independentes dos IDs de lista', () {
     final id = repository.newItemId();
     expect(

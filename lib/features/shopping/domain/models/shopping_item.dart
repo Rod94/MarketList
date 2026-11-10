@@ -51,4 +51,9 @@ final class ShoppingItem {
   final int sortOrder;
   final int? plannedQuantity;
   final DateTime? removedAt;
+
+  static int compareBySortOrder(ShoppingItem first, ShoppingItem second) {
+    final byPosition = first.sortOrder.compareTo(second.sortOrder);
+    return byPosition != 0 ? byPosition : first.id.compareTo(second.id);
+  }
 }

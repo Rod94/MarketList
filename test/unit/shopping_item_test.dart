@@ -100,6 +100,26 @@ void main() {
     }
   });
 
+  group('F2-04: ordem de inclusão', () {
+    test('posição prevalece sobre nome e quantidade', () {
+      final first = createItem(id: 'z', name: 'Zebra', sortOrder: 0);
+      final last = createItem(
+        id: 'a',
+        name: 'Abacate',
+        sortOrder: 2,
+        plannedQuantity: 5,
+      );
+      expect(ShoppingItem.compareBySortOrder(first, last), lessThan(0));
+      expect(ShoppingItem.compareBySortOrder(last, first), greaterThan(0));
+    });
+    test('desempate por ID é determinístico e reflexivo', () {
+      final first = createItem(id: 'a', sortOrder: 3);
+      final second = createItem(id: 'b', sortOrder: 3);
+      expect(ShoppingItem.compareBySortOrder(first, second), lessThan(0));
+      expect(ShoppingItem.compareBySortOrder(first, first), 0);
+    });
+  });
+
   group('F2-01: representação de origem, posição e remoção', () {
     test(
       'representa planejamento e inclusão no mercado sem exigir quantidade',

@@ -50,7 +50,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     try {
       final loaded = await _repository.listItems(shoppingList.id);
       if (_disposed) return;
-      _items = List.unmodifiable(loaded);
+      _items = _ordered(loaded);
       _hasLoaded = true;
     } catch (_) {
       if (!_disposed) {
@@ -142,7 +142,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       } else {
         updated[index] = saved;
       }
-      _items = List.unmodifiable(updated);
+      _items = _ordered(updated);
       _resetDraft();
       return true;
     } on FinalizedShoppingListException {
@@ -188,6 +188,11 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     _nameError = null;
     _quantityError = null;
     _saveError = null;
+  }
+
+  static List<ShoppingItem> _ordered(Iterable<ShoppingItem> items) {
+    final ordered = items.toList()..sort(ShoppingItem.compareBySortOrder);
+    return List.unmodifiable(ordered);
   }
 
   void _notify() {

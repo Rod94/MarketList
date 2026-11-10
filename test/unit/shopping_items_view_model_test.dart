@@ -156,6 +156,31 @@ void main() {
       expect(model.canEdit, isFalse);
     },
   );
+  test(
+    'F2-04: carga desordenada e edição preservam posição de cadastro',
+    () async {
+      final ordered = [
+        for (var i = 0; i < 3; i++)
+          ShoppingItem(
+            id: 'i$i',
+            shoppingListId: 'list',
+            name: ['Zebra', 'Leite', 'Arroz'][i],
+            origin: ShoppingItemOrigin.planned,
+            sortOrder: i,
+          ),
+      ];
+      repository.items.addAll(ordered.reversed);
+      await model.load();
+      expect(model.items.map((i) => i.id), ['i0', 'i1', 'i2']);
+      model.beginEdit(model.items[1]);
+      model.setDraftName('Abacate');
+      await model.saveDraft();
+      await model.load();
+      expect(model.items.map((i) => i.id), ['i0', 'i1', 'i2']);
+      expect(model.items[1].name, 'Abacate');
+    },
+  );
+
   test('dispose durante carga não notifica nem lança erro', () async {
     final pending = Completer<List<ShoppingItem>>();
     repository.itemsLoadHandler = (_) => pending.future;

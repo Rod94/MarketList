@@ -186,3 +186,5 @@ Nenhuma regra de negócio aprovada foi substituída. Q-001 a Q-007 permanecem ab
 - Esta fatia de planejamento não adiciona campo de preço/subtotal antes da F3. UX-001 completo (três campos) permanece dependente da F3; UX-002 já funciona na UI. Inclusões de planejamento usam origem interna planned, sem pergunta extra ao usuário.
 - Edição usa o mesmo formulário, preenchendo valores e permitindo limpar quantidade. Sucesso só fecha após commit; falha mantém texto e ID da criação. Cancelar descarta rascunho; campos, Cancelar e Voltar ficam bloqueados durante gravação. Campos rolam e ações ficam acima do teclado. Lista finalizada/ausente detectada ao salvar bloqueia novas escritas nessa tela.
 - Remoção/ocultação e garantia de ordem visual serão tratadas separadamente em F2-04/05. Q-001 a Q-007 seguem abertas; nenhum prazo de Desfazer ou regra de preço foi escolhido.
+
+F2-04, 10/11/2026: comparador puro por sortOrder com desempate por ID concretiza D-011; carga/cache usam cópias ordenadas sem alterar posições no banco. Não se ordena por nome ou quantidade. Sem mudança de regra ou esquema; teste de estabilidade após compra depende da F3.
