@@ -120,7 +120,7 @@
 | --- | --- | --- |
 | F5-01 | Agregação de itens pendentes/parciais | **Feito no domínio:** FIN-002, FIN-003, FIN-013 e D-030, com ordem e total preservados. 313 testes aprovados |
 | F5-02 | Tela de revisão sempre exibida com total e orçamento | **Feito:** rota de conferência, total fixo, saldo/excedente e aviso consolidado. 316 testes aprovados |
-| F5-03 | Valor cobrado no caixa opcional + diferença | FIN-018 a FIN-024, em centavos |
+| F5-03 | Valor cobrado no caixa opcional + diferença | **Feito na conferência:** caixa vazio ou zero distintos, diferença em centavos e erro de formato. 317 testes aprovados. Persistência na F5-05 |
 | F5-04 | Ações `Voltar e revisar` e `Confirmar finalização` | FIN-004, FIN-005, FIN-006, FIN-014 |
 | F5-05 | Operação atômica no SQLite; bloqueio de dupla finalização | FIN-008, FIN-015, FIN-017, CT-047/CT-048 |
 | F5-06 | Impedir gravações em finalizada no ViewModel/repositório | CT-046, FIN-016 |
@@ -166,7 +166,7 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 5 em andamento.** O próximo item do plano é **F5-03**, valor opcional do caixa e diferença.
+**Fase 5 em andamento.** O próximo item do plano é **F5-04**, ações da conferência.
 
 **Estado atual:** Fases 0 a 4 implementadas. Cadastro, filtros, orçamento e Desfazer disponíveis no Android com banco de compras v3. Evidências e pendências de validação estão em `TESTING.md`.
 

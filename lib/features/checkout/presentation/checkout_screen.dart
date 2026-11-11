@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../app/theme/app_spacing.dart';
 import '../../../core/money/money.dart';
-import '../../shopping/domain/models/shopping_list.dart';
 import '../../shopping/domain/shopping_calculator.dart';
 import '../../shopping/presentation/list_budget_input.dart';
 import '../../shopping/presentation/purchase_status_text.dart';
+import 'checkout_view_model.dart';
 
 class CheckoutScreen extends StatelessWidget {
-  const CheckoutScreen({
-    required this.list,
-    required this.calculation,
-    super.key,
-  });
-
-  final ShoppingList list;
-  final ShoppingCalculation calculation;
+  const CheckoutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final model = context.watch<CheckoutViewModel>();
+    final list = model.list;
+    final calculation = model.calculation;
     final attention = calculation.itemsNeedingAttention.toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Conferir compra')),
@@ -63,6 +60,34 @@ class CheckoutScreen extends StatelessWidget {
                         }),
                       ),
                   ],
+                  const SizedBox(height: AppSpacing.large),
+                  TextField(
+                    key: const ValueKey('checkout-paid'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    onChanged: model.setPaidInput,
+                    decoration: InputDecoration(
+                      labelText: 'Valor cobrado no caixa (opcional)',
+                      prefixText: 'R\$ ',
+                      errorText: model.paidError,
+                      errorMaxLines: 3,
+                    ),
+                  ),
+                  if (model.differenceCents case final difference?)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.small),
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Text(switch (difference) {
+                          > 0 =>
+                            '${formatMoneyCents(difference)} a mais no caixa',
+                          0 => 'Valores iguais',
+                          _ =>
+                            '${formatMoneyCents(-difference)} a menos no caixa',
+                        }),
+                      ),
+                    ),
                   const SizedBox(height: AppSpacing.large),
                   const Text(
                     'Após confirmar, esta compra ficará somente para consulta.',

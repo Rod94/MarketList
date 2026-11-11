@@ -128,4 +128,30 @@ void main() {
       expect(find.text('Mercado'), findsOneWidget);
     },
   );
+
+  testWidgets('FIN-018 a FIN-021 e FIN-024 validam caixa em centavos', (
+    tester,
+  ) async {
+    await openReview(tester, repository());
+    final field = find.byKey(const ValueKey('checkout-paid'));
+    for (final (input, message) in [
+      ('10,00', 'Valores iguais'),
+      ('12,40', 'R\$ 2,40 a mais no caixa'),
+      ('7,60', 'R\$ 2,40 a menos no caixa'),
+      ('0,00', 'R\$ 10,00 a menos no caixa'),
+    ]) {
+      await tester.enterText(field, input);
+      await tester.pumpAndSettle();
+      expect(find.text(message), findsOneWidget);
+      expect(find.text('Total calculado pelo app: R\$ 10,00'), findsOneWidget);
+    }
+    await tester.enterText(field, '10,123');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Use um valor como'), findsOneWidget);
+    expect(find.textContaining('a menos no caixa'), findsNothing);
+    await tester.enterText(field, '');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Use um valor como'), findsNothing);
+    expect(find.textContaining('a menos no caixa'), findsNothing);
+  });
 }

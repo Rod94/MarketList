@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/money/money.dart';
 import '../../../checkout/presentation/checkout_screen.dart';
+import '../../../checkout/presentation/checkout_view_model.dart';
 import '../../domain/models/shopping_item.dart';
 import '../../domain/shopping_calculator.dart';
 import '../list_budget_input.dart';
@@ -33,7 +34,10 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) => CheckoutScreen(list: list, calculation: calculation),
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => CheckoutViewModel(list, calculation),
+            child: const CheckoutScreen(),
+          ),
         ),
       );
     } finally {
