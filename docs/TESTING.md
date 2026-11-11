@@ -595,3 +595,10 @@ O RED em `flutter test test/widget/shopping_screen_test.dart --plain-name F7-03 
 `flutter test test/unit/app_theme_contrast_test.dart test/widget/shopping_screen_test.dart test/widget/checkout_screen_test.dart test/widget/purchase_entry_sheet_test.dart --reporter expanded` passou **40 testes**. Nos pares de texto e fundo avaliados, a menor razão foi 5,33:1 no Claro e 8,49:1 no AMOLED. O fundo principal AMOLED é preto verdadeiro. A captura do ensaio F7-01 foi inspecionada e mostra a ação Salvar produto acima do teclado numérico real.
 
 `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --plain-name 'F7-04 Android' --reporter expanded` passou o cenário de 100 produtos no Samsung. A fonte do sistema foi temporariamente ajustada para 1,3×. A rolagem chegou ao produto 100, o rodapé manteve a posição e a gravação do produto 101 atualizou o total de R$ 1,99 para R$ 10,43. A fonte e a configuração de tela foram restauradas. O ensaio mede a usabilidade funcional da rolagem. Uma medição de FPS e a leitura em voz alta com TalkBack seguem fora da evidência registrada.
+
+## 39. F7-05 — regressão completa
+
+- `dart format --output=none --set-exit-if-changed` verificou os seis arquivos Dart das mudanças da fase. `flutter analyze` terminou sem apontamentos.
+- `flutter test --reporter expanded` passou **356 testes**.
+- `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **31 testes** no Samsung com a configuração normal de fonte e rede.
+- `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f7-debug.apk`. A instalação retornou `Success` e a abertura a frio retornou `Status: ok`.
