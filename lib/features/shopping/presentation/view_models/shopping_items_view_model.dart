@@ -412,6 +412,12 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     _removalToUndo = null;
   }
 
+  void dismissRemovalUndo() {
+    if (_removalToUndo == null) return;
+    _clearUndo();
+    _notify();
+  }
+
   bool beginPurchase(ShoppingItem item, {PurchaseEntry? entry}) {
     if (!canEdit ||
         item.shoppingListId != shoppingList.id ||

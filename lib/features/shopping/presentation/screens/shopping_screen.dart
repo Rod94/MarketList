@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/money/money.dart';
+import '../../../checkout/presentation/checkout_screen.dart';
 import '../../domain/models/shopping_item.dart';
 import '../../domain/shopping_calculator.dart';
+import '../list_budget_input.dart';
 import '../view_models/shopping_items_view_model.dart';
 import '../purchase_status_text.dart';
 import '../widgets/edit_budget_dialog.dart';
@@ -19,6 +21,25 @@ class ShoppingScreen extends StatefulWidget {
 
 class _ShoppingScreenState extends State<ShoppingScreen> {
   bool _onlyToBuy = false;
+  bool _checkoutOpen = false;
+
+  Future<void> _openCheckout() async {
+    final model = context.read<ShoppingItemsViewModel>();
+    final calculation = model.calculation;
+    if (_checkoutOpen || !model.canEdit || calculation == null) return;
+    final list = model.shoppingList;
+    _checkoutOpen = true;
+    model.dismissRemovalUndo();
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => CheckoutScreen(list: list, calculation: calculation),
+        ),
+      );
+    } finally {
+      _checkoutOpen = false;
+    }
+  }
 
   Future<void> _editBudget(BuildContext context) async {
     final model = context.read<ShoppingItemsViewModel>();
@@ -106,6 +127,12 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
         appBar: AppBar(
           title: Text(model.shoppingList.name),
           actions: [
+            if (!model.readOnly)
+              IconButton(
+                tooltip: 'Finalizar compra',
+                onPressed: model.canEdit ? _openCheckout : null,
+                icon: const Icon(Icons.fact_check_outlined),
+              ),
             if (!model.readOnly)
               IconButton(
                 tooltip: model.shoppingList.budgetCents == null
@@ -297,12 +324,7 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                     ),
                   if (model.remainingBudgetCents case final remaining?)
                     Text(
-                      switch (remaining) {
-                        > 0 => '${formatMoneyCents(remaining)} disponíveis',
-                        0 => 'Limite atingido',
-                        _ =>
-                          '${formatMoneyCents(-remaining)} acima do orçamento',
-                      },
+                      remainingBudgetText(remaining),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: remaining < 0
