@@ -10,6 +10,7 @@ import 'package:market_list/core/preferences/theme_preference_store.dart';
 import 'package:market_list/features/shopping/data/sqlite_shopping_repository.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
+import 'package:market_list/features/shopping/domain/shopping_repository.dart';
 import 'package:market_list/features/shopping/presentation/screens/shopping_screen.dart';
 import 'package:market_list/features/shopping/presentation/view_models/shopping_items_view_model.dart';
 import 'package:provider/provider.dart';
@@ -49,6 +50,75 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Minhas listas'), findsOneWidget);
   }
+
+  testWidgets(
+    'F6-02 Android reabre o detalhe com preços e quantidades originais',
+    (tester) async {
+      const listId = 'history-detail';
+      await repository.createList(id: listId, name: 'Compra de referência');
+      await repository.createItem(
+        id: 'soap',
+        shoppingListId: listId,
+        name: 'Sabonete',
+        origin: ShoppingItemOrigin.planned,
+        plannedQuantity: 5,
+      );
+      await repository.createItem(
+        id: 'oil',
+        shoppingListId: listId,
+        name: 'Azeite',
+        origin: ShoppingItemOrigin.planned,
+      );
+      for (final (id, quantity, unitPrice) in [('a', 2, 350), ('b', 1, 420)]) {
+        await repository.createPurchaseEntry(
+          shoppingListId: listId,
+          entry: PurchaseEntry(
+            id: id,
+            shoppingItemId: 'soap',
+            quantity: quantity,
+            unitPriceCents: unitPrice,
+          ),
+        );
+      }
+      await repository.finalizeShoppingList(
+        await repository.loadShoppingSnapshot(listId),
+      );
+      await db.close();
+      final reopened = AppDatabase(path: p.join(directory.path, 'ui.db'));
+      db = await reopened.open();
+      repository = SqliteShoppingRepository(reopened);
+      await openApp(tester);
+      await tester.tap(find.byTooltip('Histórico'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Compra de referência'));
+      await tester.pumpAndSettle();
+      expect(find.text('Detalhes da compra'), findsOneWidget);
+      expect(find.text('Planejado: 5'), findsOneWidget);
+      expect(find.text('Quantidade comprada: 3'), findsOneWidget);
+      expect(find.text('Faltaram: 2'), findsOneWidget);
+      expect(find.text('2 × R\$ 3,50 = R\$ 7,00'), findsOneWidget);
+      expect(find.text('1 × R\$ 4,20 = R\$ 4,20'), findsOneWidget);
+      expect(find.text('Subtotal do produto: R\$ 11,20'), findsOneWidget);
+      expect(find.text('Não comprado'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byIcon(Icons.edit_outlined), findsNothing);
+      await expectLater(
+        repository.updatePurchaseEntry(
+          shoppingListId: listId,
+          entry: PurchaseEntry(
+            id: 'a',
+            shoppingItemId: 'soap',
+            quantity: 2,
+            unitPriceCents: 999,
+          ),
+        ),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      final detail = await repository.loadShoppingSnapshot(listId);
+      expect(detail.calculation.items.first.subtotalCents, 1120);
+      expect(detail.calculation.items.first.entries.first.unitPriceCents, 350);
+    },
+  );
 
   testWidgets(
     'F6-01 Android lista histórico por conclusão e recupera após reabrir',

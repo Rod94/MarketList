@@ -134,7 +134,7 @@
 | Tarefa | Entrega | Critério de conclusão |
 | --- | --- | --- |
 | F6-01 | Listar compras finalizadas por data | **Feito:** nome, conclusão e total registrado em consulta offline. Mais recentes primeiro, com desempate por ID. 340 testes Flutter e 28 no Samsung em modo avião |
-| F6-02 | Detalhe histórico somente leitura com itens e entradas | CT-012, CT-017, FIN-007, FIN-016 |
+| F6-02 | Detalhe histórico somente leitura com itens e entradas | **Feito:** itens, quantidades, faltantes, entradas e subtotais recuperados pelo ID da compra finalizada. CT-012, CT-017, FIN-007 e FIN-016 cobertos. 343 testes Flutter e 29 no Samsung em modo avião |
 | F6-03 | Preservar total calculado, orçamento e valor pago no caixa | FIN-022/FIN-023 |
 | F6-04 | Pesquisa simples por nome de produto no histórico | CT-043 a CT-045; sem análises sofisticadas |
 | F6-05 | Validar imutabilidade após nova compra em outro mês | CT-044, CT-046 |
@@ -166,9 +166,9 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 6 em andamento.** A F6-01 está concluída. O próximo item do plano é **F6-02**, detalhe histórico com itens e entradas.
+**Fase 6 em andamento.** A F6-02 está concluída. O próximo item do plano é **F6-03**, valores consolidados da compra no histórico.
 
-**Estado atual:** Fases 0 a 5 implementadas e histórico de compras finalizadas disponível no Android pela F6-01. O banco de compras continua na versão 3. Evidências em `TESTING.md`.
+**Estado atual:** Fases 0 a 5 implementadas e listagem e detalhe histórico disponíveis no Android pela F6-01 e F6-02. O banco de compras continua na versão 3. Evidências em `TESTING.md`.
 
 ## Retomada da pausa — 10/11/2026
 

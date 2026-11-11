@@ -543,3 +543,15 @@ Em **Minhas listas**, o ícone **Histórico** abre a lista de compras finalizada
 - `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f6-01-debug.apk`. A instalação com `adb install -r` retornou `Success` e a abertura a frio retornou `Status: ok`.
 
 Q-005 sobre exclusão histórica permanece pendente. A consulta da F6-01 usa os registros já finalizados.
+
+## 32. F6-02 — detalhe histórico somente para consulta
+
+Ao tocar em uma compra no Histórico, o app carrega a fotografia SQLite pelo ID e exibe produtos e entradas da compra selecionada. As quantidades e os subtotais são obtidos da calculadora existente. Uma compra parcial de cinco unidades planejadas, com duas a R$ 3,50 e uma a R$ 4,20, mostra três compradas, duas faltantes e subtotal de R$ 11,20. Entradas de valor direto mantêm a indicação de quantidade não confirmada quando existe planejamento, conforme D-030. Itens removidos ficam fora da tela.
+
+Os três novos testes de widget cobrem CT-012, CT-017, FIN-007 e FIN-016 na interface, além de erro com nova tentativa, compra vazia e tentativa de abrir um registro ativo pelo histórico. A tela usa a leitura existente do repositório e o esquema do banco de compras permanece na versão 3.
+
+- `dart format` formatou os cinco arquivos Dart da entrega.
+- `flutter analyze` terminou sem apontamentos.
+- `flutter test --reporter expanded` passou **343 testes**.
+- `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **29 testes** no Samsung, em modo avião com Wi-Fi desligado. O novo caso fechou e reabriu o SQLite, abriu o detalhe pelo Histórico, conferiu quantidades, preços e subtotal e verificou que o repositório recusou alterar a entrada finalizada. As configurações de rede e tela foram restauradas.
+- `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f6-02-debug.apk`. A instalação com `adb install -r` retornou `Success` e a abertura a frio retornou `Status: ok`.

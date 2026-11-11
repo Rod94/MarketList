@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../app/theme/app_spacing.dart';
 import '../../../core/money/money.dart';
+import 'history_detail_screen.dart';
 import 'history_view_model.dart';
 
 class HistoryScreen extends StatelessWidget {
@@ -68,6 +69,13 @@ class HistoryScreen extends StatelessWidget {
                         return MergeSemantics(
                           child: ListTile(
                             key: ValueKey('history-${list.id}'),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    HistoryDetailScreen(listId: list.id),
+                              ),
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
                             title: Text(list.name),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,

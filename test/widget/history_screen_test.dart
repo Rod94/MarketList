@@ -53,7 +53,7 @@ void main() {
       tester
           .widget<ListTile>(find.byKey(const ValueKey('history-recent')))
           .onTap,
-      isNull,
+      isNotNull,
     );
     expect(find.byIcon(Icons.delete_outline), findsNothing);
   });
