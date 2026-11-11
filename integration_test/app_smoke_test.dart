@@ -51,6 +51,65 @@ void main() {
     expect(find.text('Minhas listas'), findsOneWidget);
   }
 
+  testWidgets('F7-04 Android rola 100 produtos e confirma compra pelo rodapé', (
+    tester,
+  ) async {
+    const id = 'f7-100';
+    await repository.createList(id: id, name: 'Compra longa F7');
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (var index = 1; index <= 100; index++) {
+        batch.insert('shopping_items', {
+          'id': 'f7-item-$index',
+          'shopping_list_id': id,
+          'name': 'Produto $index',
+          'origin': 'planned',
+          'sort_order': index,
+        });
+      }
+      await batch.commit(noResult: true);
+    });
+    await repository.createPurchaseEntry(
+      shoppingListId: id,
+      entry: PurchaseEntry(
+        id: 'f7-first',
+        shoppingItemId: 'f7-item-1',
+        directAmountCents: 199,
+      ),
+    );
+    await openApp(tester);
+    await tester.tap(find.text('Compra longa F7'));
+    await tester.pumpAndSettle();
+    final screen = tester.element(find.byType(ShoppingScreen));
+    debugPrint(
+      'F7-04 Android fonte nominal 14: ${MediaQuery.textScalerOf(screen).scale(14)}',
+    );
+    final add = find.byKey(const ValueKey('add-item'));
+    final total = find.text('Total registrado: R\$ 1,99');
+    final position = tester.getCenter(add);
+    final last = find.text('Produto 100');
+    await tester.scrollUntilVisible(last, 420, maxScrolls: 60);
+    await tester.pumpAndSettle();
+    expect(last.hitTestable(), findsOneWidget);
+    expect(total, findsOneWidget);
+    expect(tester.getCenter(add), position);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('item-name')),
+      'Produto novo',
+    );
+    await tester.enterText(find.byKey(const ValueKey('item-quantity')), '2');
+    await tester.enterText(find.byKey(const ValueKey('item-price')), '4,22');
+    await tester.tap(find.byKey(const ValueKey('save-item')));
+    await tester.pumpAndSettle();
+    expect(find.text('Total registrado: R\$ 10,43'), findsOneWidget);
+    expect(
+      (await repository.loadShoppingSnapshot(id)).calculation.items,
+      hasLength(101),
+    );
+  });
+
   testWidgets(
     'F6 Android busca dois meses e mantém o detalhe original após reabrir',
     (tester) async {

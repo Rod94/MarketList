@@ -150,7 +150,7 @@
 | F7-01 | Testes offline, perda/reentrada de rede, reinício | **Feito:** perda e retorno no mesmo processo, cadastro offline e recuperação após reinício no Samsung. Histórico offline verificado na integração da F6 |
 | F7-02 | Migrações, restauração de banco e falhas simuladas | **Feito:** cópias temporárias v2 e v3 recuperadas, integridade verificada e regressão de rollback. 119 testes de banco aprovados |
 | F7-03 | Testes de limite, overflow, entradas inválidas e nomes longos | **Feito:** subtotal longo ganha linha própria conforme a largura. Limite e rejeição de overflow verificados pela interface. 354 testes aprovados |
-| F7-04 | Testes de usabilidade, contrastes e desempenho em Android | 100 produtos; teclado, scroll, botões, fonte ampliada |
+| F7-04 | Testes de usabilidade, contrastes e desempenho em Android | **Feito:** 100 produtos no Samsung com fonte 1,3×, rodapé fixo e cadastro. Contraste dos dois temas e teclado real inspecionados |
 | F7-05 | Regressão completa e correções | Suite automatizada e smoke test aprovados |
 | F7-06 | Gerar APK de distribuição de teste/release conforme ambiente e assinatura | Registrar build, variante, assinatura, versão, limites |
 | F7-07 | Revisar `docs/` e relatório final de aprendizado | Documentação reflete exatamente a implementação |
@@ -166,7 +166,7 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 7 em andamento.** A F7-03 está concluída. O próximo item do plano é **F7-04**, usabilidade, contraste e rolagem no Android.
+**Fase 7 em andamento.** A F7-04 está concluída. O próximo item do plano é **F7-05**, regressão completa.
 
 **Estado atual:** Fases 0 a 6 implementadas. O histórico permite consultar compras finalizadas e procurar preços de produtos por nome em modo offline. O banco de compras continua na versão 3. Evidências em `TESTING.md`.
 

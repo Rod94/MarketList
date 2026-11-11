@@ -589,3 +589,9 @@ Dois testes abrem cópias de arquivos SQLite temporários após fechar a última
 O teste em 360 dp com fonte 1,4× reproduziu um erro de layout quando o maior subtotal ocupava toda a largura da linha. A tela passou a medir o texto e apresentar subtotais largos abaixo do estado do produto. O teste mantém o nome e o valor exato acessíveis, inclusive R$ 92233720368547758,07. Outro teste comprova que um centavo acima do limite preserva o rascunho e o total anterior e permite corrigir e gravar.
 
 O RED em `flutter test test/widget/shopping_screen_test.dart --plain-name F7-03 --reporter expanded` teve um caso aprovado e um de layout reprovado. Após a correção, `flutter analyze` terminou sem apontamentos e `flutter test --reporter expanded` passou **354 testes**.
+
+## 38. F7-04 — usabilidade e contraste
+
+`flutter test test/unit/app_theme_contrast_test.dart test/widget/shopping_screen_test.dart test/widget/checkout_screen_test.dart test/widget/purchase_entry_sheet_test.dart --reporter expanded` passou **40 testes**. Nos pares de texto e fundo avaliados, a menor razão foi 5,33:1 no Claro e 8,49:1 no AMOLED. O fundo principal AMOLED é preto verdadeiro. A captura do ensaio F7-01 foi inspecionada e mostra a ação Salvar produto acima do teclado numérico real.
+
+`flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --plain-name 'F7-04 Android' --reporter expanded` passou o cenário de 100 produtos no Samsung. A fonte do sistema foi temporariamente ajustada para 1,3×. A rolagem chegou ao produto 100, o rodapé manteve a posição e a gravação do produto 101 atualizou o total de R$ 1,99 para R$ 10,43. A fonte e a configuração de tela foram restauradas. O ensaio mede a usabilidade funcional da rolagem. Uma medição de FPS e a leitura em voz alta com TalkBack seguem fora da evidência registrada.
