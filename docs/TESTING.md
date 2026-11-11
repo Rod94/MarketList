@@ -530,3 +530,16 @@ Os testes SQLite conferem caixa vazio e zero, persistência separada dos valores
 - `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f5-debug.apk`. Instalação com `adb install -r` retornou `Success` e abertura a frio retornou `Status: ok`. As configurações de rede e tela foram restauradas.
 
 A listagem de compras anteriores e a navegação de histórico pertencem à Fase 6.
+
+## 31. F6-01 — listagem do histórico
+
+Em **Minhas listas**, o ícone **Histórico** abre a lista de compras finalizadas com nome, data e horário locais e total registrado na finalização. O SQLite seleciona as listas pelo estado finalizado. O repositório compara os instantes de conclusão em Dart, do mais recente ao mais antigo, e usa o ID em ordem crescente como desempate. Isso preserva a ordem com datas gravadas em versões antigas, que podem ter frações de segundo com larguras diferentes. A consulta lê somente os registros das listas e mantém o esquema na versão 3.
+
+- RED de `flutter test test/database/shopping_repository_test.dart --reporter expanded` falhou pela ausência de `listFinalizedLists`.
+- Os dois novos casos de SQLite conferem exclusão de ativas, ordem, empate, frações de segundo, reabertura e integridade dos registros. Quatro testes unitários cobrem ordenação, carga simultânea, falha e descarte do ViewModel.
+- `flutter test test/widget/history_screen_test.dart --reporter expanded` passou quatro casos após corrigir o atalho na tela inicial. Os widgets verificam conteúdo, ordem, erro com nova tentativa, vazio e fonte 2× em tela de 320 × 568.
+- `dart format` verificou os 11 arquivos Dart da entrega. `flutter analyze` terminou sem apontamentos e `flutter test --reporter expanded` passou **340 testes**.
+- `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **28 testes** no Samsung. O novo cenário abriu o histórico pela tela inicial, exibiu duas compras de meses diferentes na ordem esperada e recuperou os mesmos dados após reabrir o SQLite. Modo avião, Wi-Fi desligado e ausência de rede padrão foram confirmados durante o ensaio. As configurações de rede e tela foram restauradas.
+- `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f6-01-debug.apk`. A instalação com `adb install -r` retornou `Success` e a abertura a frio retornou `Status: ok`.
+
+Q-005 sobre exclusão histórica permanece pendente. A consulta da F6-01 usa os registros já finalizados.

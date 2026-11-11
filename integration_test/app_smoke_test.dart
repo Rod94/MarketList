@@ -51,6 +51,64 @@ void main() {
   }
 
   testWidgets(
+    'F6-01 Android lista histórico por conclusão e recupera após reabrir',
+    (tester) async {
+      var clock = DateTime.utc(2026, 10, 1, 15);
+      final database = AppDatabase(path: p.join(directory.path, 'ui.db'));
+      repository = SqliteShoppingRepository(database, now: () => clock);
+      for (final (id, name, amount) in [
+        ('old', 'Compra antiga', 1000),
+        ('recent', 'Compra recente', 2000),
+      ]) {
+        await repository.createList(id: id, name: name);
+        await repository.createItemWithPurchase(
+          id: 'item-$id',
+          shoppingListId: id,
+          name: 'Arroz',
+          entry: PurchaseEntry(
+            id: 'price-$id',
+            shoppingItemId: 'item-$id',
+            directAmountCents: amount,
+          ),
+        );
+      }
+      clock = DateTime.utc(2026, 10, 2, 15);
+      await repository.finalizeShoppingList(
+        await repository.loadShoppingSnapshot('old'),
+      );
+      clock = DateTime.utc(2026, 11, 2, 15);
+      await repository.finalizeShoppingList(
+        await repository.loadShoppingSnapshot('recent'),
+      );
+      await repository.createList(id: 'active', name: 'Compra ativa');
+
+      Future<void> inspect() async {
+        await openApp(tester);
+        await tester.tap(find.byTooltip('Histórico'));
+        await tester.pumpAndSettle();
+        expect(find.text('Compra ativa'), findsNothing);
+        expect(find.text('Total registrado: R\$ 10,00'), findsOneWidget);
+        expect(find.text('Total registrado: R\$ 20,00'), findsOneWidget);
+        expect(find.textContaining('Finalizada em'), findsNWidgets(2));
+        expect(
+          tester.getTopLeft(find.text('Compra recente')).dy,
+          lessThan(tester.getTopLeft(find.text('Compra antiga')).dy),
+        );
+      }
+
+      await inspect();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await db.close();
+      db = await database.open();
+      repository = SqliteShoppingRepository(database);
+      await inspect();
+      expect((await db.query('shopping_lists')).length, 3);
+      expect((await db.query('purchase_entries')).length, 2);
+    },
+  );
+
+  testWidgets(
     'F5 Android confirma após retry e reabre a compra somente para consulta',
     (tester) async {
       const id = 'f5';

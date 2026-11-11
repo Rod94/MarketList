@@ -16,6 +16,8 @@ abstract interface class ShoppingRepository {
 
   Future<List<ShoppingList>> listActiveLists();
 
+  Future<List<ShoppingList>> listFinalizedLists();
+
   Future<ShoppingSnapshot> loadShoppingSnapshot(String id);
 
   Future<ShoppingSnapshot> finalizeShoppingList(

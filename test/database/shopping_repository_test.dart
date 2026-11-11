@@ -74,6 +74,45 @@ void main() {
     expect(first, isNot(second));
   });
 
+  test('F6-01 histórico usa conclusão, desempata por ID e preserva frações antigas', () async {
+    await seed(id: 'ativa');
+    for (final (id, finalizedAt) in [
+      ('b', '2026-11-09T14:00:00.000Z'),
+      ('c', '2026-11-09T14:00:00.000001Z'),
+      ('a', '2026-11-09T14:00:00Z'),
+    ]) {
+      await seed(id: id, finalized: true);
+      await db.update(
+        'shopping_lists',
+        {'finalized_at_utc': finalizedAt},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+    final before = await db.query('shopping_lists');
+    final history = await repository.listFinalizedLists();
+    expect(history.map((list) => list.id), ['c', 'a', 'b']);
+    expect(
+      history.map((list) => list.finalizedRegisteredTotalCents),
+      everyElement(52780),
+    );
+    expect(() => history.clear(), throwsUnsupportedError);
+    await db.close();
+    db = await appDatabase.open();
+    expect((await repository.listFinalizedLists()).map((list) => list.id), [
+      'c',
+      'a',
+      'b',
+    ]);
+    expect(await db.query('shopping_lists'), before);
+  });
+
+  test('F6-01 lista vazia e somente ativas produzem histórico vazio', () async {
+    expect(await repository.listFinalizedLists(), isEmpty);
+    await seed(id: 'ativa');
+    expect(await repository.listFinalizedLists(), isEmpty);
+  });
+
   test(
     'CT-001 repositório: cria ativa, valida nome e confirma linha persistida',
     () async {

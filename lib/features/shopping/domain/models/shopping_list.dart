@@ -70,6 +70,20 @@ final class ShoppingList {
     return byDate != 0 ? byDate : first.id.compareTo(second.id);
   }
 
+  /// Compara listas finalizadas pelo instante de conclusão e depois pelo ID.
+  static int compareByNewestFinalization(
+    ShoppingList first,
+    ShoppingList second,
+  ) {
+    final firstDate = first.finalizedAt;
+    final secondDate = second.finalizedAt;
+    if (firstDate == null || secondDate == null) {
+      throw ArgumentError('A ordenação do histórico exige listas finalizadas.');
+    }
+    final byDate = secondDate.compareTo(firstDate);
+    return byDate != 0 ? byDate : first.id.compareTo(second.id);
+  }
+
   static void _validateCents(int? value, String field) {
     if (value != null && value < 0) {
       throw ArgumentError.value(value, field, 'O valor não pode ser negativo.');

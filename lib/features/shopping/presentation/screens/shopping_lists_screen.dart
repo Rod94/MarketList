@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../app/theme/app_spacing.dart';
+import '../../../history/presentation/history_screen.dart';
+import '../../../history/presentation/history_view_model.dart';
 import '../../domain/models/shopping_list.dart';
 import '../../domain/shopping_repository.dart';
 import '../list_budget_input.dart';
@@ -74,6 +76,20 @@ class ShoppingListsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Minhas listas'),
         actions: [
+          IconButton(
+            tooltip: 'Histórico',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ChangeNotifierProvider(
+                  create: (_) =>
+                      HistoryViewModel(context.read<ShoppingRepository>())
+                        ..load(),
+                  child: const HistoryScreen(),
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.history),
+          ),
           IconButton(
             tooltip: 'Atualizar listas',
             onPressed: viewModel.isBusy ? null : viewModel.load,

@@ -582,6 +582,19 @@ final class SqliteShoppingRepository implements ShoppingRepository {
   }
 
   @override
+  Future<List<ShoppingList>> listFinalizedLists() async {
+    final db = await _database.open();
+    final rows = await db.query(
+      'shopping_lists',
+      where: 'status = ?',
+      whereArgs: [ShoppingListStatus.finalized.name],
+    );
+    final lists = rows.map(_fromRow).toList()
+      ..sort(ShoppingList.compareByNewestFinalization);
+    return List.unmodifiable(lists);
+  }
+
+  @override
   Future<bool> removeActiveList(String id) async {
     if (id.trim().isEmpty) {
       throw ArgumentError.value(
