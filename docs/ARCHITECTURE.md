@@ -442,3 +442,11 @@ AppDatabase abre v3 e aplica v1/v2/v3 incrementalmente. Purchase_entries guarda 
 F3-05 liga a fotografia ao ShoppingItemsViewModel. Total confirmado é nullable antes da carga, prévia deriva de rascunho separado e gravações aceitam só fotografia retornada pelo repositório. Planejamento confirmado reutiliza entradas confirmadas do cache para refletir alterações de nome/remoção sem um segundo salvamento. Operações de entrada/planejamento compartilham bloqueio pendente; nenhum SQL/cálculo baseado em double entra em widget. Fake agora permite controlar respostas de compra nos testes.
 
 F3-06 liga o formulário PurchaseEntrySheet ao painel ItemFormSheet. Status textual compartilhado vem de purchase_status_text.dart; subtotal/total usam fotografia confirmada. Modais compartilham a mesma instância via Provider.value e não assumem posse dela. Tela estreita/fonte grande usa valor abaixo do status para preservar espaço do nome. Sem nova migração.
+
+## 24. Fluxos do MVP Android ao encerrar a Fase 7
+
+O `ShoppingItemsViewModel` carrega o estado confirmado pelo repositório e apresenta o total em centavos. A conferência usa o mesmo retrato e guarda o rascunho do caixa separadamente. Ao confirmar, o SQLite valida a compra revisada e grava os campos finais em uma transação. A rota volta à compra em modo somente leitura.
+
+O histórico lista compras finalizadas, abre o detalhe pelo ID e busca entradas por produto. A consulta vincula a entrada ao item e à compra original. As datas são ordenadas como instantes, com desempate estável. O detalhe mostra totais, orçamento e caixa persistidos e deriva os subtotais das entradas gravadas. A preferência de tema usa um banco de configurações separado.
+
+A regressão de banco usa arquivos temporários. O roteiro de host verifica perda de rede e troca de processo no APK normal do Android. Os resultados e o fluxo de aprendizado estão no [relatório da Fase 7](PHASE_7_REPORT.md).

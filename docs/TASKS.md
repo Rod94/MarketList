@@ -153,7 +153,7 @@
 | F7-04 | Testes de usabilidade, contrastes e desempenho em Android | **Feito:** 100 produtos no Samsung com fonte 1,3×, rodapé fixo e cadastro. Contraste dos dois temas e teclado real inspecionados |
 | F7-05 | Regressão completa e correções | **Feito:** 356 testes Flutter, 31 no Samsung e abertura do APK normal de depuração |
 | F7-06 | Gerar APK de distribuição de teste/release conforme ambiente e assinatura | **Feito:** APK 0.1.0+1 compilado em modo release com assinatura de depuração verificada. Instalação, abertura e navegação ao Histórico aprovadas |
-| F7-07 | Revisar `docs/` e relatório final de aprendizado | Documentação reflete exatamente a implementação |
+| F7-07 | Revisar `docs/` e relatório final de aprendizado | **Feito:** README, requisitos, design e arquitetura alinhados com o app. Relatório da Fase 7 inclui fluxo dos dados, evidências e limites |
 
 **Atenção:** usar armazenamento local sem sincronização tem risco de perda por desinstalação ou perda do aparelho. **Backup/exportação é evolução separada**, não prometer segurança de dados externos inexistente.
 
@@ -166,9 +166,9 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 7 em andamento.** A F7-06 está concluída. O próximo item do plano é **F7-07**, documentação e relatório de aprendizado.
+**Fase 7 concluída.** O APK de teste Android e as evidências estão no [relatório da Fase 7](PHASE_7_REPORT.md).
 
-**Estado atual:** Fases 0 a 6 implementadas. O histórico permite consultar compras finalizadas e procurar preços de produtos por nome em modo offline. O banco de compras continua na versão 3. Evidências em `TESTING.md`.
+**Estado atual:** Fases 0 a 7 concluídas para o APK de teste Android. O banco de compras está na versão 3. Evidências e limites em [TESTING.md](TESTING.md).
 
 ## Retomada da pausa — 10/11/2026
 

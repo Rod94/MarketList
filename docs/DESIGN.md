@@ -128,7 +128,7 @@ Correção de preço altera a entrada existente e recalcula a soma; não cria en
 
 1. `Total calculado pelo app` em destaque.
 2. Se houver orçamento: valor disponível e diferença (saldo/excedente).
-3. Itens que pedem atenção: sem compras registradas e parciais (ou quantidade não confirmada, sujeito à validação). Somente esses itens são listados na revisão.
+3. Itens que pedem atenção incluem produtos sem compras registradas, compras parciais e quantidades não confirmadas conforme D-030.
 4. **Campo opcional:** `Valor cobrado no caixa (R$)`. Se informado, mostrar `R$ X a mais/menos no caixa` ou `Valores iguais`.
 5. Aviso discreto: `Após confirmar, esta compra ficará somente para consulta.`
 6. Ações: `Voltar e revisar` e `Confirmar finalização`.

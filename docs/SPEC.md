@@ -195,4 +195,4 @@ As regras de apresentação e de persistência estão detalhadas em `DESIGN.md` 
 - `TASKS.md`: entregas pequenas e validáveis por fase.
 - `../AGENTS.md`: orientações para o Codex, incluindo explicações didáticas.
 
-**Progresso de implementação:** consultar `TASKS.md` e os relatórios de execução. Em 10/11/2026, Fases 0/1/2 foram concluídas, incluindo planejamento visual de produtos com quantidade opcional, edição, ordem e remoção lógica. Preços, compra, finalização e histórico continuam planejados. Esta atualização de progresso não altera as regras aprovadas.
+**Progresso de implementação** — As Fases 0 a 7 estão concluídas para o APK de teste Android. Consulte [TASKS.md](TASKS.md) para o estado das entregas e o [relatório da Fase 7](PHASE_7_REPORT.md) para as evidências e os limites da validação.
