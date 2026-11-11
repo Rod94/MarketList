@@ -148,7 +148,7 @@
 | Tarefa | Entrega | Critério de conclusão |
 | --- | --- | --- |
 | F7-01 | Testes offline, perda/reentrada de rede, reinício | **Feito:** perda e retorno no mesmo processo, cadastro offline e recuperação após reinício no Samsung. Histórico offline verificado na integração da F6 |
-| F7-02 | Migrações, restauração de banco e falhas simuladas | CT-048/CT-049; sem perda de dados confirmados |
+| F7-02 | Migrações, restauração de banco e falhas simuladas | **Feito:** cópias temporárias v2 e v3 recuperadas, integridade verificada e regressão de rollback. 119 testes de banco aprovados |
 | F7-03 | Testes de limite, overflow, entradas inválidas e nomes longos | Nenhuma divergência monetária conhecida |
 | F7-04 | Testes de usabilidade, contrastes e desempenho em Android | 100 produtos; teclado, scroll, botões, fonte ampliada |
 | F7-05 | Regressão completa e correções | Suite automatizada e smoke test aprovados |
@@ -166,7 +166,7 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 7 em andamento.** A F7-01 está concluída. O próximo item do plano é **F7-02**, migrações e recuperação de banco.
+**Fase 7 em andamento.** A F7-02 está concluída. O próximo item do plano é **F7-03**, limites, entradas inválidas e nomes longos.
 
 **Estado atual:** Fases 0 a 6 implementadas. O histórico permite consultar compras finalizadas e procurar preços de produtos por nome em modo offline. O banco de compras continua na versão 3. Evidências em `TESTING.md`.
 

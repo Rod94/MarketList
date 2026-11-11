@@ -427,6 +427,38 @@ void main() {
   );
 
   test(
+    'F7-02 restaura uma cópia v3 com histórico e entradas confirmadas',
+    () async {
+      await repository.createPurchaseEntry(
+        shoppingListId: 'list',
+        entry: entry(),
+      );
+      final original = await repository.finalizeShoppingList(
+        await repository.loadShoppingSnapshot('list'),
+        checkoutPaidCents: 1100,
+      );
+      await db.close();
+      final copy = p.join(directory.path, 'restored-v3.db');
+      await File(database.path!).copy(copy);
+      final restored = AppDatabase(factory: databaseFactoryFfi, path: copy);
+      db = await restored.open();
+      final recovered = await SqliteShoppingRepository(restored)
+          .loadShoppingSnapshot('list');
+      expect(recovered.list.finalizedAt, original.list.finalizedAt);
+      expect(recovered.list.finalizedRegisteredTotalCents, 1050);
+      expect(recovered.list.checkoutPaidCents, 1100);
+      expect(
+        recovered.calculation.items.first.entries.single.unitPriceCents,
+        350,
+      );
+      expect(await db.rawQuery('PRAGMA integrity_check'), [
+        {'integrity_check': 'ok'},
+      ]);
+      expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+    },
+  );
+
+  test(
     'CT-009/010: vários preços retornam fotografia confirmada com total exato',
     () async {
       await repository.createPurchaseEntry(

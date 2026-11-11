@@ -114,6 +114,28 @@ void main() {
       expect((await db.query('shopping_lists')).single, list);
     },
   );
+  test(
+    'F7-02 abre cópia v2 restaurada e migra sem alterar o arquivo de origem',
+    () async {
+      var db = await open(legacy: true);
+      await seed(db);
+      await db.close();
+      final original = File(path);
+      final originalBytes = await original.readAsBytes();
+      path = p.join(directory.path, 'restored-v2.db');
+      await original.copy(path);
+      db = await open();
+      expect(await db.getVersion(), AppDatabase.schemaVersion);
+      expect((await db.query('shopping_lists')).single, list);
+      expect((await db.query('shopping_items')).single, item);
+      expect(await db.rawQuery('PRAGMA integrity_check'), [
+        {'integrity_check': 'ok'},
+      ]);
+      expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+      expect(await original.readAsBytes(), originalBytes);
+    },
+  );
+
   test('instalação nova e upgrade v2 produzem esquema idêntico', () async {
     var db = await open();
     const sql =

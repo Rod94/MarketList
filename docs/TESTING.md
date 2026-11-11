@@ -577,3 +577,9 @@ O teste SQLite de CT-044 e CT-046 finaliza duas compras de Arroz 5 kg, em novemb
 `python -B tool/verify_android_offline.py --adb <caminho-adb> --serial RXCY300NZZH --run --purchases --network-cycle` passou no APK normal da F6. O Samsung criou a lista e registrou R$ 12,66 sem rede, recuperou a rede padrão com a compra aberta e voltou a ficar offline no mesmo processo. Registrou então R$ 47,82 sem rede. Um `am force-stop` encerrou o processo. Após abrir novamente em modo avião, outro PID recuperou orçamento, compras e total de R$ 60,48. O roteiro removeu a lista de teste e restaurou rede e tela. Evidência em `build/offline_verification_f7/result.json`.
 
 Esse ensaio cobre CT-036 a CT-040 e UX-010. A integração Android da seção 34 cobre CT-041 com histórico e detalhe finalizado offline.
+
+## 36. F7-02 — recuperação e integridade
+
+Dois testes abrem cópias de arquivos SQLite temporários após fechar a última conexão. A cópia v2 migra para v3, preserva lista, itens e valores finais e deixa o arquivo de origem idêntico. A cópia v3 recupera uma compra com entrada confirmada, total de R$ 10,50 e caixa de R$ 11,00. As duas passam `PRAGMA integrity_check` e `foreign_key_check`. O ensaio valida a recuperação em teste, enquanto a decisão Q-007 sobre exportação no app segue aberta.
+
+`dart format` formatou os dois testes, `flutter analyze` terminou sem apontamentos e `flutter test test/database --reporter expanded` passou **119 testes**, incluindo falha de migração, rollback de finalização e nova tentativa.
