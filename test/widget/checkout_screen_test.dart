@@ -123,11 +123,34 @@ void main() {
       await openReview(tester, repository(budget: 0));
       expect(find.text('Orçamento: R\$ 0,00'), findsOneWidget);
       expect(find.text('R\$ 10,00 acima do orçamento'), findsOneWidget);
-      await tester.tap(find.byType(BackButton));
+      await tester.tap(find.text('Voltar e revisar'));
       await tester.pumpAndSettle();
       expect(find.text('Mercado'), findsOneWidget);
     },
   );
+
+  testWidgets('FIN-004/005/014 voltar permite corrigir e rever o novo total', (
+    tester,
+  ) async {
+    final repo = repository();
+    await openReview(tester, repo);
+    await tester.tap(find.text('Voltar e revisar'));
+    await tester.pumpAndSettle();
+    expect(repo.lists.single.status, ShoppingListStatus.active);
+    await repo.updatePurchaseEntry(
+      shoppingListId: 'list',
+      entry: PurchaseEntry(
+        id: 'leite-compra',
+        shoppingItemId: 'leite',
+        directAmountCents: 1500,
+      ),
+    );
+    await tester.tap(find.byTooltip('Atualizar produtos'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Finalizar compra'));
+    await tester.pumpAndSettle();
+    expect(find.text('Total calculado pelo app: R\$ 15,00'), findsOneWidget);
+  });
 
   testWidgets('FIN-018 a FIN-021 e FIN-024 validam caixa em centavos', (
     tester,

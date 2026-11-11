@@ -32,7 +32,7 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
     _checkoutOpen = true;
     model.dismissRemovalUndo();
     try {
-      await Navigator.of(context).push<void>(
+      await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
             create: (_) => CheckoutViewModel(list, calculation),
