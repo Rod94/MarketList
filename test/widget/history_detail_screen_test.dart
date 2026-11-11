@@ -50,6 +50,64 @@ void main() {
     expect(find.text('Detalhes da compra'), findsOneWidget);
   }
 
+  testWidgets('FIN-022/023 mostra os valores históricos separadamente', (
+    tester,
+  ) async {
+    final list = ShoppingList(
+      id: finalized.id,
+      name: finalized.name,
+      createdAt: finalized.createdAt,
+      status: ShoppingListStatus.finalized,
+      finalizedAt: finalized.finalizedAt,
+      finalizedRegisteredTotalCents: 52780,
+      budgetCents: 60000,
+      checkoutPaidCents: 53020,
+    );
+    final repository =
+        FakeShoppingRepository(lists: [list], items: [item('rice', 'Arroz', 0)])
+          ..entries.add(
+            PurchaseEntry(
+              id: 'original',
+              shoppingItemId: 'rice',
+              quantity: 2,
+              unitPriceCents: 350,
+            ),
+          );
+    await openHistory(tester, repository);
+    await openDetail(tester);
+    expect(find.text('Total calculado: R\$ 527,80'), findsOneWidget);
+    expect(find.text('Orçamento: R\$ 600,00'), findsOneWidget);
+    expect(find.text('Valor pago no caixa: R\$ 530,20'), findsOneWidget);
+    expect(find.text('2 × R\$ 3,50 = R\$ 7,00'), findsOneWidget);
+  });
+
+  testWidgets('FIN-022 diferencia orçamento e caixa zero de campos ausentes', (
+    tester,
+  ) async {
+    final repository = FakeShoppingRepository(lists: [finalized]);
+    await openHistory(tester, repository);
+    await openDetail(tester);
+    expect(find.text('Total calculado: R\$ 21,00'), findsOneWidget);
+    expect(find.textContaining('Orçamento:'), findsNothing);
+    expect(find.textContaining('Valor pago no caixa:'), findsNothing);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    repository.lists[0] = ShoppingList(
+      id: finalized.id,
+      name: finalized.name,
+      createdAt: finalized.createdAt,
+      status: ShoppingListStatus.finalized,
+      finalizedAt: finalized.finalizedAt,
+      finalizedRegisteredTotalCents: 0,
+      budgetCents: 0,
+      checkoutPaidCents: 0,
+    );
+    await openDetail(tester);
+    expect(find.text('Total calculado: R\$ 0,00'), findsOneWidget);
+    expect(find.text('Orçamento: R\$ 0,00'), findsOneWidget);
+    expect(find.text('Valor pago no caixa: R\$ 0,00'), findsOneWidget);
+  });
+
   testWidgets(
     'CT-012/017 e FIN-007/016 exibem entradas antigas em somente leitura',
     (tester) async {

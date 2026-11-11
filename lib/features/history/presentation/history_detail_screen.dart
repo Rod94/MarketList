@@ -100,6 +100,15 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                   ),
                   Text('Finalizada em $date'),
                   const Text('Somente para consulta'),
+                  const SizedBox(height: AppSpacing.medium),
+                  Text(
+                    'Total calculado: ${formatMoneyCents(detail.list.finalizedRegisteredTotalCents!)}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (detail.list.budgetCents case final budget?)
+                    Text('Orçamento: ${formatMoneyCents(budget)}'),
+                  if (detail.list.checkoutPaidCents case final paid?)
+                    Text('Valor pago no caixa: ${formatMoneyCents(paid)}'),
                   if (items.isEmpty)
                     const Padding(
                       padding: EdgeInsets.only(top: AppSpacing.medium),
