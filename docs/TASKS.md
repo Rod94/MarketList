@@ -137,7 +137,7 @@
 | F6-02 | Detalhe histórico somente leitura com itens e entradas | **Feito:** itens, quantidades, faltantes, entradas e subtotais recuperados pelo ID da compra finalizada. CT-012, CT-017, FIN-007 e FIN-016 cobertos. 343 testes Flutter e 29 no Samsung em modo avião |
 | F6-03 | Preservar total calculado, orçamento e valor pago no caixa | **Feito:** valores persistidos exibidos separadamente, com distinção entre zero e campo ausente. FIN-022/FIN-023 e 345 testes aprovados |
 | F6-04 | Pesquisa simples por nome de produto no histórico | **Feito:** busca por trecho do nome, resultados por compra e data com preços originais e acesso ao detalhe. 349 testes aprovados |
-| F6-05 | Validar imutabilidade após nova compra em outro mês | CT-044, CT-046 |
+| F6-05 | Validar imutabilidade após nova compra em outro mês | **Feito:** CT-044/046 com comparação dos registros originais, recusa de alterações e consulta após reabrir o SQLite. 350 testes Flutter e 30 no Samsung em modo avião |
 
 **Explicações didáticas:** consultas SQL, relacionamentos, diferenças entre dado persistido e dado derivado, `FutureBuilder`/estado assíncrono conforme implementação.
 
@@ -166,9 +166,9 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 6 em andamento.** A F6-04 está concluída. O próximo item do plano é **F6-05**, validar a imutabilidade do histórico em compras de meses diferentes.
+**Fase 6 concluída.** O próximo item do plano é **F7-01**, regressão offline, perda e retorno de rede e reinício.
 
-**Estado atual:** Fases 0 a 5 implementadas e listagem e detalhe histórico disponíveis no Android pela F6-01 e F6-02. O banco de compras continua na versão 3. Evidências em `TESTING.md`.
+**Estado atual:** Fases 0 a 6 implementadas. O histórico permite consultar compras finalizadas e procurar preços de produtos por nome em modo offline. O banco de compras continua na versão 3. Evidências em `TESTING.md`.
 
 ## Retomada da pausa — 10/11/2026
 

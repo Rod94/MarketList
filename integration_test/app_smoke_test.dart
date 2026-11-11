@@ -52,6 +52,90 @@ void main() {
   }
 
   testWidgets(
+    'F6 Android busca dois meses e mantém o detalhe original após reabrir',
+    (tester) async {
+      var clock = DateTime.utc(2026, 11, 10, 15);
+      final database = AppDatabase(path: p.join(directory.path, 'ui.db'));
+      repository = SqliteShoppingRepository(database, now: () => clock);
+      for (final (id, label, price, budget, paid, date) in [
+        ('old', 'Mercado de novembro', 1900, 5000, 4000, clock),
+        (
+          'recent',
+          'Mercado de janeiro',
+          2400,
+          null,
+          null,
+          DateTime.utc(2027, 1, 10, 15),
+        ),
+      ]) {
+        clock = date;
+        await repository.createList(id: id, name: label, budgetCents: budget);
+        await repository.createItemWithPurchase(
+          id: 'rice-$id',
+          shoppingListId: id,
+          name: 'Arroz 5 kg',
+          entry: PurchaseEntry(
+            id: 'price-$id',
+            shoppingItemId: 'rice-$id',
+            quantity: 2,
+            unitPriceCents: price,
+          ),
+        );
+        await repository.finalizeShoppingList(
+          await repository.loadShoppingSnapshot(id),
+          checkoutPaidCents: paid,
+        );
+      }
+      await db.close();
+      db = await database.open();
+      repository = SqliteShoppingRepository(database);
+      await openApp(tester);
+      await tester.tap(find.byTooltip('Histórico'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Buscar no histórico'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('history-search-input')),
+        'ARROZ',
+      );
+      await tester.tap(find.byTooltip('Buscar produto'));
+      await tester.pumpAndSettle();
+      final old = find.byKey(const ValueKey('history-product-rice-old'));
+      final recent = find.byKey(const ValueKey('history-product-rice-recent'));
+      expect(tester.getTopLeft(recent).dy, lessThan(tester.getTopLeft(old).dy));
+      expect(find.text('2 × R\$ 19,00 = R\$ 38,00'), findsOneWidget);
+      expect(find.text('2 × R\$ 24,00 = R\$ 48,00'), findsOneWidget);
+      await tester.tap(old);
+      await tester.pumpAndSettle();
+      expect(find.text('Mercado de novembro'), findsOneWidget);
+      expect(find.text('Total calculado: R\$ 38,00'), findsOneWidget);
+      expect(find.text('Orçamento: R\$ 50,00'), findsOneWidget);
+      expect(find.text('Valor pago no caixa: R\$ 40,00'), findsOneWidget);
+      expect(find.text('2 × R\$ 19,00 = R\$ 38,00'), findsOneWidget);
+      expect(find.text('2 × R\$ 24,00 = R\$ 48,00'), findsNothing);
+      expect(find.byType(TextField), findsNothing);
+      await expectLater(
+        repository.updatePurchaseEntry(
+          shoppingListId: 'old',
+          entry: PurchaseEntry(
+            id: 'price-old',
+            shoppingItemId: 'rice-old',
+            quantity: 2,
+            unitPriceCents: 2400,
+          ),
+        ),
+        throwsA(isA<FinalizedShoppingListException>()),
+      );
+      expect(
+        (await repository.loadShoppingSnapshot('old'))
+            .list
+            .finalizedRegisteredTotalCents,
+        3800,
+      );
+    },
+  );
+
+  testWidgets(
     'F6-02 Android reabre o detalhe com preços e quantidades originais',
     (tester) async {
       const listId = 'history-detail';

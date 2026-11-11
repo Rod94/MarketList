@@ -344,6 +344,89 @@ void main() {
   );
 
   test(
+    'CT-044/046 mantém compra de 2026 após finalizar o mesmo produto em 2027',
+    () async {
+      var clock = DateTime.utc(2026, 11, 10, 15);
+      repository = SqliteShoppingRepository(database, now: () => clock);
+      Future<void> buy(String id, int price, {int? budget, int? paid}) async {
+        await repository.createList(
+          id: id,
+          name: 'Compra $id',
+          budgetCents: budget,
+        );
+        await repository.createItemWithPurchase(
+          id: 'rice-$id',
+          shoppingListId: id,
+          name: 'Arroz 5 kg',
+          entry: entry(
+            id: 'price-$id',
+            item: 'rice-$id',
+            quantity: 2,
+            price: price,
+          ),
+        );
+        await repository.finalizeShoppingList(
+          await repository.loadShoppingSnapshot(id),
+          checkoutPaidCents: paid,
+        );
+      }
+
+      Future<List<Map<String, Object?>>> originalRows() async => [
+        ...(await db.query(
+          'shopping_lists',
+          where: 'id = ?',
+          whereArgs: ['2026'],
+        )),
+        ...(await db.query(
+          'shopping_items',
+          where: 'id = ?',
+          whereArgs: ['rice-2026'],
+        )),
+        ...(await db.query(
+          'purchase_entries',
+          where: 'id = ?',
+          whereArgs: ['price-2026'],
+        )),
+      ];
+
+      await buy('2026', 1900, budget: 5000, paid: 4000);
+      final before = await originalRows();
+      clock = DateTime.utc(2027, 1, 10, 15);
+      await buy('2027', 2400);
+      final blocked = throwsA(isA<FinalizedShoppingListException>());
+      await expectLater(
+        repository.updatePurchaseEntry(
+          shoppingListId: '2026',
+          entry: entry(
+            id: 'price-2026',
+            item: 'rice-2026',
+            quantity: 2,
+            price: 2400,
+          ),
+        ),
+        blocked,
+      );
+      await expectLater(repository.updateListBudget('2026', 0), blocked);
+      await expectLater(repository.removeActiveList('2026'), blocked);
+      await db.close();
+      db = await database.open();
+      expect(await originalRows(), before);
+
+      final matches = await repository.searchHistoryProducts('arroz 5 kg');
+      expect(matches.map((match) => match.finalizedAt.year), [2027, 2026]);
+      expect(matches.map((match) => match.entries.single.unitPriceCents), [
+        2400,
+        1900,
+      ]);
+      final old = await repository.loadShoppingSnapshot('2026');
+      expect(old.list.budgetCents, 5000);
+      expect(old.list.checkoutPaidCents, 4000);
+      expect(old.list.finalizedRegisteredTotalCents, 3800);
+      expect(old.calculation.items.single.subtotalCents, 3800);
+    },
+  );
+
+  test(
     'CT-009/010: vários preços retornam fotografia confirmada com total exato',
     () async {
       await repository.createPurchaseEntry(

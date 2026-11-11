@@ -561,3 +561,13 @@ Os três novos testes de widget cobrem CT-012, CT-017, FIN-007 e FIN-016 na inte
 Na F6-03, o detalhe mostra o total calculado gravado, o orçamento e o valor do caixa em campos separados. Dois testes de widget cobrem FIN-022/023, inclusive valores opcionais ausentes, zero e total persistido que difere da soma das entradas. `flutter analyze` terminou sem apontamentos e `flutter test --reporter expanded` passou **345 testes**.
 
 Na F6-04, uma consulta SQLite reúne produtos comprados de listas finalizadas e suas entradas. O filtro em Dart usa trecho literal, ignora maiúsculas e preserva acentos. Os resultados são ordenados pela conclusão, com desempate pela lista e posição do item. O teste RED falhou pela ausência do método. Um teste SQLite cobriu CT-043/045, inclusive preços múltiplos, exclusão de compras ativas e itens removidos, e caracteres literais. Três testes de widget cobriram navegação, busca vazia, falha com retry e resposta atrasada. `flutter analyze` terminou sem apontamentos e `flutter test --reporter expanded` passou **349 testes**.
+
+## 34. F6-05 — preservação do histórico entre compras
+
+O teste SQLite de CT-044 e CT-046 finaliza duas compras de Arroz 5 kg, em novembro de 2026 e janeiro de 2027, com preços unitários de R$ 19,00 e R$ 24,00. O repositório recusa edição de preço, edição de orçamento e exclusão da compra antiga. Após reabrir o banco, as linhas da compra, do produto e da entrada de 2026 são idênticas às originais. A busca recupera os dois preços e a compra antiga mantém total de R$ 38,00, orçamento de R$ 50,00 e caixa de R$ 40,00.
+
+- `dart format` formatou os dois arquivos Dart da F6-05.
+- `flutter analyze` terminou sem apontamentos.
+- `flutter test --reporter expanded` passou **350 testes**.
+- `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **30 testes** no Samsung, com modo avião ativo, Wi-Fi desligado e ausência de rede padrão confirmada antes e depois. O novo caso reabriu o SQLite, buscou o produto, mostrou os dois preços e recuperou total, orçamento e caixa da compra antiga no detalhe. As configurações do aparelho foram restauradas.
+- `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f6-debug.apk`. A instalação com `adb install -r` retornou `Success` e a abertura a frio retornou `Status: ok`.
