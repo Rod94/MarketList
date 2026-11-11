@@ -583,3 +583,9 @@ Esse ensaio cobre CT-036 a CT-040 e UX-010. A integração Android da seção 34
 Dois testes abrem cópias de arquivos SQLite temporários após fechar a última conexão. A cópia v2 migra para v3, preserva lista, itens e valores finais e deixa o arquivo de origem idêntico. A cópia v3 recupera uma compra com entrada confirmada, total de R$ 10,50 e caixa de R$ 11,00. As duas passam `PRAGMA integrity_check` e `foreign_key_check`. O ensaio valida a recuperação em teste, enquanto a decisão Q-007 sobre exportação no app segue aberta.
 
 `dart format` formatou os dois testes, `flutter analyze` terminou sem apontamentos e `flutter test test/database --reporter expanded` passou **119 testes**, incluindo falha de migração, rollback de finalização e nova tentativa.
+
+## 37. F7-03 — limites monetários na interface
+
+O teste em 360 dp com fonte 1,4× reproduziu um erro de layout quando o maior subtotal ocupava toda a largura da linha. A tela passou a medir o texto e apresentar subtotais largos abaixo do estado do produto. O teste mantém o nome e o valor exato acessíveis, inclusive R$ 92233720368547758,07. Outro teste comprova que um centavo acima do limite preserva o rascunho e o total anterior e permite corrigir e gravar.
+
+O RED em `flutter test test/widget/shopping_screen_test.dart --plain-name F7-03 --reporter expanded` teve um caso aprovado e um de layout reprovado. Após a correção, `flutter analyze` terminou sem apontamentos e `flutter test --reporter expanded` passou **354 testes**.

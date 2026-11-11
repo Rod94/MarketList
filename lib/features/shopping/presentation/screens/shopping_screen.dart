@@ -125,9 +125,9 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
         .toList();
     final filtering = _onlyToBuy && !model.readOnly;
     final visibleItems = filtering ? itemsToBuy : allItems;
-    final compactAmounts =
-        MediaQuery.sizeOf(context).width < 360 ||
-        MediaQuery.textScalerOf(context).scale(14) > 20;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final textScaler = MediaQuery.textScalerOf(context);
+    final compactAmounts = screenWidth < 360 || textScaler.scale(14) > 20;
     return PopScope(
       canPop: !model.isSaving,
       child: Scaffold(
@@ -267,6 +267,19 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                           final subtotal = summary.entries.isEmpty
                               ? 'Sem preço'
                               : formatMoneyCents(summary.subtotalCents);
+                          final subtotalBelow =
+                              compactAmounts ||
+                              TextPainter.computeWidth(
+                                    text: TextSpan(
+                                      text: subtotal,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium,
+                                    ),
+                                    textDirection: Directionality.of(context),
+                                    textScaler: textScaler,
+                                  ) >
+                                  screenWidth * .38;
                           return MergeSemantics(
                             child: ListTile(
                               key: ValueKey('item-${item.id}'),
@@ -285,13 +298,13 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                                         ? 'Não comprado'
                                         : purchaseStatusText(summary),
                                   ),
-                                  if (compactAmounts) Text(subtotal),
+                                  if (subtotalBelow) Text(subtotal),
                                 ],
                               ),
                               onTap: model.canEdit && item.removedAt == null
                                   ? () => _openForm(context, item)
                                   : null,
-                              trailing: compactAmounts
+                              trailing: subtotalBelow
                                   ? model.readOnly
                                         ? null
                                         : const Icon(Icons.chevron_right)

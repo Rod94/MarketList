@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:market_list/app/app.dart';
+import 'package:market_list/core/money/money.dart';
 import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
@@ -31,6 +32,73 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('add-item')));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('F7-03 nome longo e centavos no limite cabem na lista', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 760);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.4;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    const name = 'Produto com nome comprido para conferir quebra de linha';
+    repository.items.add(
+      ShoppingItem(
+        id: 'limit',
+        shoppingListId: list.id,
+        name: name,
+        origin: ShoppingItemOrigin.atStore,
+        sortOrder: 0,
+      ),
+    );
+    repository.entries.add(
+      PurchaseEntry(
+        id: 'max',
+        shoppingItemId: 'limit',
+        directAmountCents: maxMoneyCents,
+      ),
+    );
+    await open(tester);
+    const amount = 'R\$ 92233720368547758,07';
+    expect(find.text(amount), findsOneWidget);
+    expect(find.text('Total registrado: $amount'), findsOneWidget);
+    expect(tester.getSize(find.text(name)).width, greaterThan(100));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('F7-03 preço acima do limite preserva o rascunho e o total', (
+    tester,
+  ) async {
+    await open(tester);
+    await form(tester);
+    final price = find.byKey(const ValueKey('item-price'));
+    final save = find.byKey(const ValueKey('save-item'));
+    await tester.enterText(
+      find.byKey(const ValueKey('item-name')),
+      'Produto limite',
+    );
+    await tester.enterText(price, '92233720368547758,08');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('grande demais'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(price).controller!.text,
+      '92233720368547758,08',
+    );
+    expect(find.text('Total registrado: R\$ 0,00'), findsOneWidget);
+    expect(repository.entries, isEmpty);
+    await tester.enterText(price, '92233720368547758,07');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(repository.entries.single.directAmountCents, maxMoneyCents);
+    expect(
+      find.text('Total registrado: R\$ 92233720368547758,07'),
+      findsOneWidget,
+    );
+  });
 
   void seedPurchaseStatuses() {
     for (final (index, name) in ['Arroz', 'Feijão', 'Leite', 'Carne'].indexed) {
