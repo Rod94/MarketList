@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:market_list/app/theme/theme_view_model.dart';
 import 'package:market_list/core/preferences/theme_preference.dart';
@@ -32,5 +34,47 @@ void main() {
     viewModel.selectTheme(ThemePreference.system);
 
     expect(notifications, 0);
+  });
+
+  test(
+    'D-033: só muda a aparência após persistir e protege contra toque duplo',
+    () async {
+      final pending = Completer<void>();
+      final calls = <ThemePreference>[];
+      final model = ThemeViewModel(
+        persist: (preference) {
+          calls.add(preference);
+          return pending.future;
+        },
+      );
+      addTearDown(model.dispose);
+      final saving = model.selectTheme(ThemePreference.amoled);
+      expect(model.isSaving, isTrue);
+      expect(model.preference, ThemePreference.system);
+      await model.selectTheme(ThemePreference.light);
+      expect(calls, [ThemePreference.amoled]);
+      pending.complete();
+      await saving;
+      expect(model.preference, ThemePreference.amoled);
+      expect(model.isSaving, isFalse);
+    },
+  );
+
+  test('D-033: falha preserva a aparência e permite tentar de novo', () async {
+    var fail = true;
+    final model = ThemeViewModel(
+      initialPreference: ThemePreference.light,
+      persist: (_) async {
+        if (fail) throw StateError('falha');
+      },
+    );
+    addTearDown(model.dispose);
+    await model.selectTheme(ThemePreference.amoled);
+    expect(model.preference, ThemePreference.light);
+    expect(model.error, isNotNull);
+    fail = false;
+    await model.selectTheme(ThemePreference.amoled);
+    expect(model.preference, ThemePreference.amoled);
+    expect(model.error, isNull);
   });
 }

@@ -185,43 +185,45 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                             ItemPurchaseStatus.removed =>
                               Icons.remove_circle_outline,
                           };
-                          return ListTile(
-                            key: ValueKey('item-${item.id}'),
-                            visualDensity: VisualDensity.compact,
-                            leading: ExcludeSemantics(child: Icon(statusIcon)),
-                            title: Text(item.name),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(purchaseStatusText(summary)),
-                                if (compactAmounts)
-                                  Text(
-                                    summary.entries.isEmpty
-                                        ? 'Sem preço'
-                                        : formatMoneyCents(
-                                            summary.subtotalCents,
-                                          ),
-                                  ),
-                              ],
+                          final colors = Theme.of(context).colorScheme;
+                          final statusColor = switch (summary.status) {
+                            ItemPurchaseStatus.purchased => colors.primary,
+                            ItemPurchaseStatus.partial => colors.secondary,
+                            ItemPurchaseStatus.quantityUnconfirmed =>
+                              colors.tertiary,
+                            _ => colors.onSurfaceVariant,
+                          };
+                          final subtotal = summary.entries.isEmpty
+                              ? 'Sem preço'
+                              : formatMoneyCents(summary.subtotalCents);
+                          return MergeSemantics(
+                            child: ListTile(
+                              key: ValueKey('item-${item.id}'),
+                              visualDensity: VisualDensity.compact,
+                              leading: ExcludeSemantics(
+                                child: Icon(statusIcon, color: statusColor),
+                              ),
+                              title: Text(item.name),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(purchaseStatusText(summary)),
+                                  if (compactAmounts) Text(subtotal),
+                                ],
+                              ),
+                              onTap: model.canEdit && item.removedAt == null
+                                  ? () => _openForm(context, item)
+                                  : null,
+                              trailing: compactAmounts
+                                  ? const Icon(Icons.chevron_right)
+                                  : Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(subtotal),
+                                        const Icon(Icons.chevron_right),
+                                      ],
+                                    ),
                             ),
-                            onTap: model.canEdit && item.removedAt == null
-                                ? () => _openForm(context, item)
-                                : null,
-                            trailing: compactAmounts
-                                ? const Icon(Icons.chevron_right)
-                                : Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        summary.entries.isEmpty
-                                            ? 'Sem preço'
-                                            : formatMoneyCents(
-                                                summary.subtotalCents,
-                                              ),
-                                      ),
-                                      const Icon(Icons.chevron_right),
-                                    ],
-                                  ),
                           );
                         },
                       ),

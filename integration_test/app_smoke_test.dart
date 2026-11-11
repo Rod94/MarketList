@@ -6,6 +6,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:market_list/app/app.dart';
 import 'package:market_list/core/database/app_database.dart';
 import 'package:market_list/core/preferences/theme_preference.dart';
+import 'package:market_list/core/preferences/theme_preference_store.dart';
 import 'package:market_list/features/shopping/data/sqlite_shopping_repository.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
@@ -441,6 +442,39 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('save-item')));
     await tester.pumpAndSettle();
     expect((await repository.listItems('products')).single.plannedQuantity, 5);
+  });
+
+  testWidgets('F4-05 Android: aparência persistida volta ao recriar o app', (
+    tester,
+  ) async {
+    final path = p.join(directory.path, 'preferences.db');
+    final store = ThemePreferenceStore(path: path);
+    expect(await store.read(), ThemePreference.system);
+    await tester.pumpWidget(
+      MarketListApp(repository: repository, persistTheme: store.save),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Aparência'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButton<ThemePreference>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('AMOLED').last);
+    await tester.pumpAndSettle();
+    expect(await store.read(), ThemePreference.amoled);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+
+    final reopened = ThemePreferenceStore(path: path);
+    await tester.pumpWidget(
+      MarketListApp(
+        repository: repository,
+        initialTheme: await reopened.read(),
+        persistTheme: reopened.save,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final scaffold = tester.element(find.byType(Scaffold));
+    expect(Theme.of(scaffold).scaffoldBackgroundColor, const Color(0xFF000000));
   });
 
   testWidgets('F0-06: abre aplicativo e seleciona AMOLED no dispositivo', (

@@ -107,7 +107,7 @@
 | F4-02 | Filtros `Todos` / `A comprar` | **Feito:** UX-011 a UX-016, ordem e total preservados; 299 testes aprovados |
 | F4-03 | Barra inferior fixa com total e `+ Adicionar` | **Feito:** total fixo ao rolar 100 itens, inclusão acessível com teclado e fonte 2× em widget; 300 testes aprovados |
 | F4-04 | Orçamento opcional, saldo/excedente | **Feito:** CT-028 a CT-031, edição transacional em lista ativa, zero explícito e nenhuma restrição à compra; 303 testes aprovados |
-| F4-05 | Temas claro/AMOLED e ajustes de acessibilidade | UX-009, UX-018, UX-019; inspeção em celular real |
+| F4-05 | Temas claro/AMOLED e ajustes de acessibilidade | **Implementado:** preferência local e semântica dos itens; 306 testes Flutter e 1 Android de aparência persistida. Inspeção manual com TalkBack pendente |
 | F4-06 | Ajustes de feedback e velocidade de cadastro | Confirmar salva, erro não apaga campos; evitar toque duplo |
 
 **Explicações didáticas:** ciclo de vida do widget, `ChangeNotifier`, `notifyListeners`, reatividade, tema e layout responsivo.
@@ -166,7 +166,7 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 4 em andamento.** Próxima tarefa **F4-05**, persistência do tema e acessibilidade. D-032 e D-033 orientam o Desfazer e a persistência do tema.
+**Fase 4 em andamento.** Próxima tarefa **F4-06**, feedback e Desfazer por cinco segundos conforme D-032.
 
 **Estado atual:** Fases 0 a 3 concluídas. Cadastro e edição de preços disponíveis na interface com banco v3. Evidências e pendências de teste físico constam do relatório da fase.
 

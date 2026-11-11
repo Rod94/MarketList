@@ -24,7 +24,7 @@ class ScaffoldScreen extends StatelessWidget {
               Text('Aparência', style: theme.textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.small),
               Text(
-                'Escolha o tema para visualizar esta tela.',
+                'Escolha a aparência do aplicativo.',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -56,14 +56,24 @@ class ScaffoldScreen extends StatelessWidget {
                           ),
                         ),
                     ],
-                    onChanged: (preference) {
-                      if (preference != null) {
-                        context.read<ThemeViewModel>().selectTheme(preference);
-                      }
-                    },
+                    onChanged: viewModel.isSaving
+                        ? null
+                        : (preference) {
+                            if (preference != null) {
+                              viewModel.selectTheme(preference);
+                            }
+                          },
                   ),
                 ),
               ),
+              if (viewModel.error case final error?)
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    error,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                ),
             ],
           ),
         ),

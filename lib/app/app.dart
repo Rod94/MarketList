@@ -12,9 +12,16 @@ import 'theme/app_theme.dart';
 import 'theme/theme_view_model.dart';
 
 class MarketListApp extends StatelessWidget {
-  const MarketListApp({super.key, this.repository});
+  const MarketListApp({
+    super.key,
+    this.repository,
+    this.initialTheme = ThemePreference.system,
+    this.persistTheme,
+  });
 
   final ShoppingRepository? repository;
+  final ThemePreference initialTheme;
+  final Future<void> Function(ThemePreference)? persistTheme;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +30,12 @@ class MarketListApp extends StatelessWidget {
         Provider<ShoppingRepository>(
           create: (_) => repository ?? SqliteShoppingRepository(AppDatabase()),
         ),
-        ChangeNotifierProvider(create: (_) => ThemeViewModel()),
+        ChangeNotifierProvider(
+          create: (_) => ThemeViewModel(
+            initialPreference: initialTheme,
+            persist: persistTheme,
+          ),
+        ),
         ChangeNotifierProvider(
           create: (context) =>
               ShoppingListsViewModel(context.read<ShoppingRepository>())

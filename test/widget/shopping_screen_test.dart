@@ -91,6 +91,22 @@ void main() {
     }
   });
 
+  testWidgets('UX-019 agrupa nome, estado, quantidade e subtotal no leitor', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      seedPurchaseStatuses();
+      await open(tester);
+      expect(
+        find.bySemanticsLabel(RegExp(r'Feijão\nParcial · 3 de 5\nR\$ 10,50')),
+        findsOneWidget,
+      );
+    } finally {
+      semantics.dispose();
+    }
+  });
+
   testWidgets('F4-02 filtra a compra sem mudar posição nem total', (
     tester,
   ) async {
