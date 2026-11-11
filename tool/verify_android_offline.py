@@ -78,6 +78,22 @@ class AndroidCheck:
     def setting(self, name):
         return self.adb("shell", "settings", "get", "global", name)
 
+    def set_network(self, airplane, wifi):
+        self.adb("shell", "cmd", "connectivity", "airplane-mode",
+                 "enable" if airplane == "1" else "disable")
+        self.adb("shell", "svc", "wifi", "enable" if wifi == "1" else "disable")
+
+    def wait_for_network(self, *, offline):
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            connectivity = self.adb("shell", "dumpsys", "connectivity")
+            default = re.search(r"^Active default network:\s*(\S+)", connectivity, re.MULTILINE)
+            if default and (default[1] == "none") == offline:
+                return
+            time.sleep(0.5)
+        state = "ausência" if offline else "retorno"
+        raise RuntimeError(f"Não foi possível confirmar {state} da rede padrão.")
+
     def screenshot(self, name):
         (self.output / name).write_bytes(self.adb("exec-out", "screencap", "-p", binary=True))
 
@@ -111,6 +127,7 @@ def main():
     parser.add_argument("--run", action="store_true", help="Autoriza teste com modo avião/Wi-Fi temporários.")
     parser.add_argument("--items", action="store_true", help="Inclui produtos/quantidades/remoção/ordem da Fase 2.")
     parser.add_argument("--purchases", action="store_true", help="Verifica compras unitária e direta da Fase 3.")
+    parser.add_argument("--network-cycle", action="store_true", help="Alterna a rede com a compra aberta (F7-01).")
     options = parser.parse_args()
     if options.inspect == options.run:
         parser.error("Escolha exatamente --inspect ou --run.")
@@ -118,7 +135,9 @@ def main():
         parser.error("--items e --purchases exigem --run.")
     if options.items and options.purchases:
         parser.error("Escolha --items ou --purchases.")
-    suffix = "_f3" if options.purchases else "_f2" if options.items else ""
+    if options.network_cycle and not options.purchases:
+        parser.error("--network-cycle exige --run --purchases.")
+    suffix = "_f7" if options.network_cycle else "_f3" if options.purchases else "_f2" if options.items else ""
     output = Path(__file__).resolve().parents[1] / "build" / f"offline_verification{suffix}"
     output.mkdir(parents=True, exist_ok=True)
     check = AndroidCheck(options.adb, options.serial, output)
@@ -131,7 +150,7 @@ def main():
             check.adb("shell", "rm", "-f", check.remote_xml, check=False)
         return
 
-    phase = "F3" if options.purchases else "F2" if options.items else "F1"
+    phase = "F7" if options.network_cycle else "F3" if options.purchases else "F2" if options.items else "F1"
     name = f"TesteOffline{phase}_{uuid.uuid4().hex[:8]}"
     report = {"test_list": name, "persisted_after_restart": False, "cleanup_ok": False}
     original_airplane = check.setting("airplane_mode_on")
@@ -141,6 +160,8 @@ def main():
         raise RuntimeError("Estado de rede transitório/desconhecido; teste não iniciado.")
     if not original_stay_on.isdigit():
         raise RuntimeError("Estado de tela desconhecido; teste não iniciado.")
+    if options.network_cycle:
+        check.wait_for_network(offline=False)
     nodes = check.home_with("Minhas listas")
     if any(node.get("class") == "android.widget.EditText" for node in nodes):
         raise RuntimeError("Há um formulário aberto; teste não iniciado.")
@@ -151,17 +172,10 @@ def main():
     started = False
     try:
         check.adb("shell", "svc", "power", "stayon", "usb")
-        check.adb("shell", "cmd", "connectivity", "airplane-mode", "enable")
-        check.adb("shell", "svc", "wifi", "disable")
-        deadline = time.monotonic() + 20
-        while time.monotonic() < deadline:
-            connectivity = check.adb("shell", "dumpsys", "connectivity")
-            if (check.setting("airplane_mode_on") == "1" and check.setting("wifi_on") == "0"
-                    and "Active default network: none" in connectivity):
-                break
-            time.sleep(0.5)
-        else:
-            raise RuntimeError("Não foi possível confirmar ausência de rede padrão.")
+        check.set_network("1", "0")
+        check.wait_for_network(offline=True)
+        if check.setting("airplane_mode_on") != "1" or check.setting("wifi_on") != "0":
+            raise RuntimeError("Modo avião com Wi-Fi desligado não confirmado.")
         report["offline_confirmed"] = True
         started = True
         report["stage"] = "abrir o aplicativo em modo avião"
@@ -203,6 +217,18 @@ def main():
                 check.screenshot("purchase_keyboard.png")
                 check.tap_label("Salvar produto")
                 check.home_with(product)
+                if options.network_cycle and product == "LeiteTeste":
+                    report["stage"] = "reconectar e perder rede com a compra aberta"
+                    pid = check.adb("shell", "pidof", PACKAGE)
+                    check.set_network(original_airplane, original_wifi)
+                    check.wait_for_network(offline=False)
+                    check.home_with("Total registrado: R$ 12,66")
+                    check.set_network("1", "0")
+                    check.wait_for_network(offline=True)
+                    check.home_with("Total registrado: R$ 12,66")
+                    if not pid or check.adb("shell", "pidof", PACKAGE) != pid:
+                        raise RuntimeError("O processo mudou durante a transição de rede.")
+                    report.update(network_cycle=True, network_cycle_pid=pid)
         report["stage"] = "reiniciar o processo e conferir os dados"
         original_pid = check.adb("shell", "pidof", PACKAGE)
         if not original_pid:
@@ -268,6 +294,7 @@ def main():
             (output / "result.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
             print(json.dumps(report, ensure_ascii=False))
     if not (report["persisted_after_restart"] and report["cleanup_ok"]
+            and (not options.network_cycle or report.get("network_cycle"))
             and report["network_settings_restored"] and report["screen_setting_restored"]):
         raise SystemExit(1)
 

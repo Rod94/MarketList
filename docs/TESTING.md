@@ -571,3 +571,9 @@ O teste SQLite de CT-044 e CT-046 finaliza duas compras de Arroz 5 kg, em novemb
 - `flutter test --reporter expanded` passou **350 testes**.
 - `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **30 testes** no Samsung, com modo avião ativo, Wi-Fi desligado e ausência de rede padrão confirmada antes e depois. O novo caso reabriu o SQLite, buscou o produto, mostrou os dois preços e recuperou total, orçamento e caixa da compra antiga no detalhe. As configurações do aparelho foram restauradas.
 - `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f6-debug.apk`. A instalação com `adb install -r` retornou `Success` e a abertura a frio retornou `Status: ok`.
+
+## 35. F7-01 — rede e reinício
+
+`python -B tool/verify_android_offline.py --adb <caminho-adb> --serial RXCY300NZZH --run --purchases --network-cycle` passou no APK normal da F6. O Samsung criou a lista e registrou R$ 12,66 sem rede, recuperou a rede padrão com a compra aberta e voltou a ficar offline no mesmo processo. Registrou então R$ 47,82 sem rede. Um `am force-stop` encerrou o processo. Após abrir novamente em modo avião, outro PID recuperou orçamento, compras e total de R$ 60,48. O roteiro removeu a lista de teste e restaurou rede e tela. Evidência em `build/offline_verification_f7/result.json`.
+
+Esse ensaio cobre CT-036 a CT-040 e UX-010. A integração Android da seção 34 cobre CT-041 com histórico e detalhe finalizado offline.
