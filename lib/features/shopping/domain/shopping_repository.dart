@@ -1,4 +1,5 @@
 import 'models/shopping_list.dart';
+import 'models/history_product_match.dart';
 import 'models/shopping_item.dart';
 import 'models/purchase_entry.dart';
 import 'models/shopping_snapshot.dart';
@@ -17,6 +18,8 @@ abstract interface class ShoppingRepository {
   Future<List<ShoppingList>> listActiveLists();
 
   Future<List<ShoppingList>> listFinalizedLists();
+
+  Future<List<HistoryProductMatch>> searchHistoryProducts(String name);
 
   Future<ShoppingSnapshot> loadShoppingSnapshot(String id);
 

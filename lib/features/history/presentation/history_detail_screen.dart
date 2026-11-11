@@ -7,6 +7,7 @@ import '../../shopping/domain/models/shopping_list.dart';
 import '../../shopping/domain/models/shopping_snapshot.dart';
 import '../../shopping/domain/shopping_calculator.dart';
 import '../../shopping/domain/shopping_repository.dart';
+import 'history_entry_text.dart';
 
 class HistoryDetailScreen extends StatefulWidget {
   const HistoryDetailScreen({required this.listId, super.key});
@@ -170,12 +171,7 @@ class _HistoryItem extends StatelessWidget {
             for (final entry in summary.entries)
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.small),
-                child: Text(
-                  entry.isDirect
-                      ? 'Valor direto: ${formatMoneyCents(entry.subtotalCents)}'
-                      : '${entry.quantity} × ${formatMoneyCents(entry.unitPriceCents!)}'
-                            ' = ${formatMoneyCents(entry.subtotalCents)}',
-                ),
+                child: Text(historyEntryText(entry)),
               ),
           ],
         ],

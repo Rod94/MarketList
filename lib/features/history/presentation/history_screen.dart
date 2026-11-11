@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../core/money/money.dart';
 import 'history_detail_screen.dart';
+import 'history_search_screen.dart';
 import 'history_view_model.dart';
 
 class HistoryScreen extends StatelessWidget {
@@ -17,6 +18,15 @@ class HistoryScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Histórico'),
         actions: [
+          IconButton(
+            tooltip: 'Buscar no histórico',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const HistorySearchScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.search),
+          ),
           IconButton(
             tooltip: 'Atualizar histórico',
             onPressed: model.isLoading ? null : model.load,

@@ -6,6 +6,7 @@ import '../../../core/money/money.dart';
 import '../domain/models/shopping_item.dart';
 import '../domain/models/shopping_list.dart';
 import '../domain/models/purchase_entry.dart';
+import '../domain/models/history_product_match.dart';
 import '../domain/models/shopping_snapshot.dart';
 import '../domain/shopping_calculator.dart';
 import '../domain/shopping_repository.dart';
@@ -592,6 +593,54 @@ final class SqliteShoppingRepository implements ShoppingRepository {
     final lists = rows.map(_fromRow).toList()
       ..sort(ShoppingList.compareByNewestFinalization);
     return List.unmodifiable(lists);
+  }
+
+  @override
+  Future<List<HistoryProductMatch>> searchHistoryProducts(String name) async {
+    final term = name.trim().toLowerCase();
+    if (term.isEmpty) return const [];
+
+    final db = await _database.open();
+    final rows = await db.rawQuery(
+      '''
+      SELECT e.*, l.id AS list_id, l.name AS list_name, l.finalized_at_utc,
+             i.name AS product_name, i.sort_order
+      FROM shopping_lists l
+      JOIN shopping_items i ON i.shopping_list_id = l.id
+      JOIN purchase_entries e ON e.shopping_item_id = i.id
+      WHERE l.status = ? AND i.removed_at_utc IS NULL
+      ORDER BY e.id
+    ''',
+      [ShoppingListStatus.finalized.name],
+    );
+
+    final groups =
+        <String, ({Map<String, Object?> row, List<PurchaseEntry> entries})>{};
+    for (final row in rows) {
+      // Dart trata letras como É/é e compara % e _ como texto literal.
+      if (!(row['product_name'] as String).toLowerCase().contains(term)) {
+        continue;
+      }
+      final itemId = row['shopping_item_id'] as String;
+      final group = groups.putIfAbsent(itemId, () => (row: row, entries: []));
+      group.entries.add(_entryFromRow(row));
+    }
+    final results = [
+      for (final MapEntry(key: itemId, value: group) in groups.entries)
+        HistoryProductMatch(
+          listId: group.row['list_id'] as String,
+          listName: group.row['list_name'] as String,
+          finalizedAt: _parseUtc(
+            group.row['finalized_at_utc'],
+            'finalized_at_utc',
+          ),
+          itemId: itemId,
+          productName: group.row['product_name'] as String,
+          sortOrder: group.row['sort_order'] as int,
+          entries: group.entries,
+        ),
+    ]..sort(HistoryProductMatch.compareByNewest);
+    return List.unmodifiable(results);
   }
 
   @override

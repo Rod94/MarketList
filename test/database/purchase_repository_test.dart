@@ -282,6 +282,68 @@ void main() {
   );
 
   test(
+    'CT-043/045 busca preços confirmados por trecho literal do nome',
+    () async {
+      await repository.updateItem(
+        id: 'soap',
+        shoppingListId: 'list',
+        name: 'Café 100% puro',
+        plannedQuantity: 5,
+      );
+      await repository.updateItem(
+        id: 'milk',
+        shoppingListId: 'list',
+        name: 'Café removido',
+        plannedQuantity: null,
+      );
+      await repository.updateItem(
+        id: 'meat',
+        shoppingListId: 'list',
+        name: 'Café planejado',
+        plannedQuantity: null,
+      );
+      await repository.updateItem(
+        id: 'foreign',
+        shoppingListId: 'other-list',
+        name: 'Café ativo',
+        plannedQuantity: null,
+      );
+      for (final price in [
+        entry(),
+        entry(id: 'second', quantity: 2, price: 420),
+        entry(id: 'removed', item: 'milk', direct: 500),
+      ]) {
+        await repository.createPurchaseEntry(
+          shoppingListId: 'list',
+          entry: price,
+        );
+      }
+      await repository.createPurchaseEntry(
+        shoppingListId: 'other-list',
+        entry: entry(id: 'active', item: 'foreign', direct: 100),
+      );
+      await repository.removeItem(id: 'milk', shoppingListId: 'list');
+      await repository.finalizeShoppingList(
+        await repository.loadShoppingSnapshot('list'),
+      );
+
+      final result = (await repository.searchHistoryProducts(' CAFÉ ')).single;
+      expect(result.listId, 'list');
+      expect(result.listName, 'Compra');
+      expect(result.finalizedAt, isNotNull);
+      expect(result.productName, 'Café 100% puro');
+      expect(result.entries.map((entry) => entry.unitPriceCents), [350, 420]);
+      expect(() => result.entries.clear(), throwsUnsupportedError);
+      expect(
+        (await repository.searchHistoryProducts('%')).single.itemId,
+        'soap',
+      );
+      expect(await repository.searchHistoryProducts('_'), isEmpty);
+      expect(await repository.searchHistoryProducts('   '), isEmpty);
+    },
+  );
+
+  test(
     'CT-009/010: vários preços retornam fotografia confirmada com total exato',
     () async {
       await repository.createPurchaseEntry(

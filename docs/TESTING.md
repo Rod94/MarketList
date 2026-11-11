@@ -555,3 +555,9 @@ Os três novos testes de widget cobrem CT-012, CT-017, FIN-007 e FIN-016 na inte
 - `flutter test --reporter expanded` passou **343 testes**.
 - `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **29 testes** no Samsung, em modo avião com Wi-Fi desligado. O novo caso fechou e reabriu o SQLite, abriu o detalhe pelo Histórico, conferiu quantidades, preços e subtotal e verificou que o repositório recusou alterar a entrada finalizada. As configurações de rede e tela foram restauradas.
 - `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f6-02-debug.apk`. A instalação com `adb install -r` retornou `Success` e a abertura a frio retornou `Status: ok`.
+
+## 33. F6-03 e F6-04 — valores registrados e busca de produtos
+
+Na F6-03, o detalhe mostra o total calculado gravado, o orçamento e o valor do caixa em campos separados. Dois testes de widget cobrem FIN-022/023, inclusive valores opcionais ausentes, zero e total persistido que difere da soma das entradas. `flutter analyze` terminou sem apontamentos e `flutter test --reporter expanded` passou **345 testes**.
+
+Na F6-04, uma consulta SQLite reúne produtos comprados de listas finalizadas e suas entradas. O filtro em Dart usa trecho literal, ignora maiúsculas e preserva acentos. Os resultados são ordenados pela conclusão, com desempate pela lista e posição do item. O teste RED falhou pela ausência do método. Um teste SQLite cobriu CT-043/045, inclusive preços múltiplos, exclusão de compras ativas e itens removidos, e caracteres literais. Três testes de widget cobriram navegação, busca vazia, falha com retry e resposta atrasada. `flutter analyze` terminou sem apontamentos e `flutter test --reporter expanded` passou **349 testes**.

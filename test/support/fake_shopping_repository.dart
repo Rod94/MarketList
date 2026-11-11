@@ -1,4 +1,5 @@
 import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
+import 'package:market_list/features/shopping/domain/models/history_product_match.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_snapshot.dart';
@@ -17,6 +18,42 @@ class FakeShoppingRepository implements ShoppingRepository {
   final List<PurchaseEntry> entries = [];
   Future<List<ShoppingList>> Function()? historyLoadHandler;
   int historyLoadCalls = 0;
+  Future<List<HistoryProductMatch>> Function(String)? historySearchHandler;
+
+  @override
+  Future<List<HistoryProductMatch>> searchHistoryProducts(String name) async {
+    final handler = historySearchHandler;
+    if (handler != null) return handler(name);
+    final term = name.trim().toLowerCase();
+    if (term.isEmpty) return const [];
+    final results = <HistoryProductMatch>[];
+    for (final list in await listFinalizedLists()) {
+      for (final item in items.where(
+        (item) =>
+            item.shoppingListId == list.id &&
+            item.removedAt == null &&
+            item.name.toLowerCase().contains(term),
+      )) {
+        final prices = entries
+            .where((entry) => entry.shoppingItemId == item.id)
+            .toList();
+        if (prices.isEmpty) continue;
+        results.add(
+          HistoryProductMatch(
+            listId: list.id,
+            listName: list.name,
+            finalizedAt: list.finalizedAt!,
+            itemId: item.id,
+            productName: item.name,
+            sortOrder: item.sortOrder,
+            entries: prices,
+          ),
+        );
+      }
+    }
+    results.sort(HistoryProductMatch.compareByNewest);
+    return List.unmodifiable(results);
+  }
 
   @override
   Future<List<ShoppingList>> listFinalizedLists() async {
