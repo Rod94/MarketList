@@ -122,7 +122,7 @@
 | F5-02 | Tela de revisão sempre exibida com total e orçamento | **Feito:** rota de conferência, total fixo, saldo/excedente e aviso consolidado. 316 testes aprovados |
 | F5-03 | Valor cobrado no caixa opcional + diferença | **Feito na conferência:** caixa vazio ou zero distintos, diferença em centavos e erro de formato. 317 testes aprovados. Persistência na F5-05 |
 | F5-04 | Ações `Voltar e revisar` e `Confirmar finalização` | **Feito:** retorno à edição e confirmação protegida por callback; 320 testes aprovados. Conexão ao SQLite na F5-05 |
-| F5-05 | Operação atômica no SQLite; bloqueio de dupla finalização | FIN-008, FIN-015, FIN-017, CT-047/CT-048 |
+| F5-05 | Operação atômica no SQLite; bloqueio de dupla finalização | **Feito:** confirmação ligada ao SQLite, comparação com a conferência, rollback, concorrência e caixa separado. 327 testes aprovados |
 | F5-06 | Impedir gravações em finalizada no ViewModel/repositório | CT-046, FIN-016 |
 
 **Explicações didáticas:** transação, invariantes, concorrência, por que não basta desabilitar botões na UI.
@@ -166,7 +166,7 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 5 em andamento.** O próximo item do plano é **F5-05**, finalização atômica no SQLite.
+**Fase 5 em andamento.** O próximo item do plano é **F5-06**, proteção e consulta da compra finalizada.
 
 **Estado atual:** Fases 0 a 4 implementadas. Cadastro, filtros, orçamento e Desfazer disponíveis no Android com banco de compras v3. Evidências e pendências de validação estão em `TESTING.md`.
 

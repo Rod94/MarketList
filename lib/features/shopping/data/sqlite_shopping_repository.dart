@@ -6,6 +6,7 @@ import '../../../core/money/money.dart';
 import '../domain/models/shopping_item.dart';
 import '../domain/models/shopping_list.dart';
 import '../domain/models/purchase_entry.dart';
+import '../domain/models/shopping_snapshot.dart';
 import '../domain/shopping_calculator.dart';
 import '../domain/shopping_repository.dart';
 
@@ -32,6 +33,75 @@ final class SqliteShoppingRepository implements ShoppingRepository {
       await _requireList(txn, shoppingListId);
       return _calculateTransaction(txn, shoppingListId);
     });
+  }
+
+  @override
+  Future<ShoppingSnapshot> loadShoppingSnapshot(String id) async {
+    final db = await _database.open();
+    return db.transaction((txn) => _readSnapshot(txn, id));
+  }
+
+  @override
+  Future<ShoppingSnapshot> finalizeShoppingList(
+    ShoppingSnapshot reviewed, {
+    int? checkoutPaidCents,
+  }) async {
+    if (checkoutPaidCents != null) validateMoneyCents(checkoutPaidCents);
+    final id = reviewed.list.id;
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      final current = await _readSnapshot(txn, id, writable: true);
+      if (!current.matchesReview(reviewed)) {
+        throw ShoppingReviewChangedException(current);
+      }
+      final now = _now().toUtc();
+      final created = current.list.createdAt;
+      final finalized = ShoppingList(
+        id: id,
+        name: current.list.name,
+        createdAt: created,
+        status: ShoppingListStatus.finalized,
+        // O relógio do aparelho pode ter sido ajustado desde a criação.
+        finalizedAt: now.isBefore(created) ? created : now,
+        budgetCents: current.list.budgetCents,
+        finalizedRegisteredTotalCents: current.calculation.totalCents,
+        checkoutPaidCents: checkoutPaidCents,
+      );
+      final changed = await txn.update(
+        'shopping_lists',
+        {
+          'status': finalized.status.name,
+          'finalized_at_utc': _formatUtc(finalized.finalizedAt!),
+          'finalized_registered_total_cents':
+              finalized.finalizedRegisteredTotalCents,
+          'checkout_paid_cents': finalized.checkoutPaidCents,
+        },
+        where: 'id = ? AND status = ?',
+        whereArgs: [id, ShoppingListStatus.active.name],
+      );
+      if (changed != 1) throw FinalizedShoppingListException(id);
+      return ShoppingSnapshot(finalized, current.calculation);
+    });
+  }
+
+  static Future<ShoppingSnapshot> _readSnapshot(
+    DatabaseExecutor txn,
+    String id, {
+    bool writable = false,
+  }) async {
+    _validateId(id, 'id');
+    final rows = await txn.query(
+      'shopping_lists',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) throw ShoppingListNotFoundException(id);
+    final list = _fromRow(rows.single);
+    if (writable && list.status == ShoppingListStatus.finalized) {
+      throw FinalizedShoppingListException(id);
+    }
+    return ShoppingSnapshot(list, await _calculateTransaction(txn, id));
   }
 
   @override

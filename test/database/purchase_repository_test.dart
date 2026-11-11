@@ -68,6 +68,145 @@ void main() {
     await directory.delete(recursive: true);
   });
   test(
+    'FIN-006/022/023 finaliza com pendências e preserva caixa e entradas',
+    () async {
+      await repository.createPurchaseEntry(
+        shoppingListId: 'list',
+        entry: entry(),
+      );
+      final review = await repository.loadShoppingSnapshot('list');
+      final finalized = await repository.finalizeShoppingList(
+        review,
+        checkoutPaidCents: 1150,
+      );
+      expect(finalized.list.status.name, 'finalized');
+      expect(finalized.list.finalizedAt, isNotNull);
+      expect(finalized.list.finalizedRegisteredTotalCents, 1050);
+      expect(finalized.list.checkoutPaidCents, 1150);
+      expect(
+        finalized.calculation.itemsNeedingAttention.map(
+          (item) => item.missingQuantity,
+        ),
+        [2, null, null],
+      );
+      expect((await repository.listActiveLists()).map((list) => list.id), [
+        'other-list',
+      ]);
+      await db.close();
+      db = await database.open();
+      final reopened = await repository.loadShoppingSnapshot('list');
+      expect(reopened.list.checkoutPaidCents, 1150);
+      expect(reopened.list.finalizedRegisteredTotalCents, 1050);
+      expect(
+        reopened.calculation.items.first.entries.single.unitPriceCents,
+        350,
+      );
+    },
+  );
+
+  test('FIN-021/024 distingue caixa ausente, zero e valor negativo', () async {
+    final review = await repository.loadShoppingSnapshot('list');
+    await expectLater(
+      repository.finalizeShoppingList(review, checkoutPaidCents: -1),
+      throwsRangeError,
+    );
+    final blank = await repository.finalizeShoppingList(review);
+    final other = await repository.loadShoppingSnapshot('other-list');
+    final zero = await repository.finalizeShoppingList(
+      other,
+      checkoutPaidCents: 0,
+    );
+    expect(blank.list.checkoutPaidCents, isNull);
+    expect(zero.list.checkoutPaidCents, 0);
+  });
+
+  test(
+    'CT-047 duas chamadas concorrentes confirmam uma só finalização',
+    () async {
+      final review = await repository.loadShoppingSnapshot('list');
+      Future<int?> attempt(int paid) async {
+        try {
+          return (await repository.finalizeShoppingList(
+            review,
+            checkoutPaidCents: paid,
+          )).list.checkoutPaidCents;
+        } on FinalizedShoppingListException {
+          return null;
+        }
+      }
+
+      final results = await Future.wait([attempt(0), attempt(500)]);
+      final successful = results.nonNulls.single;
+      expect(
+        (await repository.loadShoppingSnapshot('list')).list.checkoutPaidCents,
+        successful,
+      );
+    },
+  );
+
+  test(
+    'CT-048/FIN-017 erro SQL reverte status, data e ambos os totais',
+    () async {
+      final review = await repository.loadShoppingSnapshot('list');
+      await db.execute('''
+      CREATE TRIGGER fail_finalize AFTER UPDATE OF status ON shopping_lists
+      WHEN NEW.status = 'finalized'
+      BEGIN SELECT RAISE(ABORT, 'falha simulada'); END
+    ''');
+      await expectLater(
+        repository.finalizeShoppingList(review, checkoutPaidCents: 100),
+        throwsA(isA<DatabaseException>()),
+      );
+      final unchanged = (await repository.loadShoppingSnapshot('list')).list;
+      expect(unchanged.status.name, 'active');
+      expect(unchanged.finalizedAt, isNull);
+      expect(unchanged.finalizedRegisteredTotalCents, isNull);
+      expect(unchanged.checkoutPaidCents, isNull);
+      await db.execute('DROP TRIGGER fail_finalize');
+      expect(
+        (await repository.finalizeShoppingList(
+          review,
+          checkoutPaidCents: 100,
+        )).list.checkoutPaidCents,
+        100,
+      );
+    },
+  );
+
+  test('conferência desatualizada exige nova confirmação com total ou avisos alterados', () async {
+    final first = await repository.loadShoppingSnapshot('list');
+    await repository.updateItem(
+      id: 'soap',
+      shoppingListId: 'list',
+      name: 'Sabonete',
+      plannedQuantity: 5,
+    );
+    await expectLater(
+      repository.finalizeShoppingList(first),
+      throwsA(isA<ShoppingReviewChangedException>()),
+    );
+    final second = await repository.loadShoppingSnapshot('list');
+    await repository.createPurchaseEntry(
+      shoppingListId: 'list',
+      entry: entry(),
+    );
+    await expectLater(
+      repository.finalizeShoppingList(second),
+      throwsA(isA<ShoppingReviewChangedException>()),
+    );
+    final third = await repository.loadShoppingSnapshot('list');
+    await repository.updateListBudget('list', 1000);
+    await expectLater(
+      repository.finalizeShoppingList(third),
+      throwsA(isA<ShoppingReviewChangedException>()),
+    );
+    expect(
+      (await repository.loadShoppingSnapshot('list')).list.status.name,
+      'active',
+    );
+  });
+
+  test(
     'CT-009/010: vários preços retornam fotografia confirmada com total exato',
     () async {
       await repository.createPurchaseEntry(

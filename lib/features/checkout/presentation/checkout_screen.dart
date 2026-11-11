@@ -8,8 +8,21 @@ import '../../shopping/presentation/list_budget_input.dart';
 import '../../shopping/presentation/purchase_status_text.dart';
 import 'checkout_view_model.dart';
 
-class CheckoutScreen extends StatelessWidget {
+class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
+
+  @override
+  State<CheckoutScreen> createState() => _CheckoutScreenState();
+}
+
+class _CheckoutScreenState extends State<CheckoutScreen> {
+  final _paidController = TextEditingController();
+
+  @override
+  void dispose() {
+    _paidController.dispose();
+    super.dispose();
+  }
 
   Future<void> _confirm(BuildContext context, CheckoutViewModel model) async {
     FocusScope.of(context).unfocus();
@@ -22,8 +35,8 @@ class CheckoutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final model = context.watch<CheckoutViewModel>();
-    final list = model.list;
-    final calculation = model.calculation;
+    final list = model.review.list;
+    final calculation = model.review.calculation;
     final attention = calculation.itemsNeedingAttention.toList();
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final compact =
@@ -81,6 +94,7 @@ class CheckoutScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.large),
                     TextField(
                       key: const ValueKey('checkout-paid'),
+                      controller: _paidController,
                       enabled: !model.isSaving,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -137,24 +151,23 @@ class CheckoutScreen extends StatelessWidget {
                   alignment: WrapAlignment.end,
                   spacing: AppSpacing.small,
                   children: [
-                    if (!keyboardOpen || !model.hasConfirmation)
+                    if (!keyboardOpen)
                       TextButton(
                         onPressed: model.isSaving
                             ? null
                             : () => Navigator.of(context).pop(),
                         child: const Text('Voltar e revisar'),
                       ),
-                    if (model.hasConfirmation)
-                      FilledButton(
-                        onPressed: model.canConfirm
-                            ? () => _confirm(context, model)
-                            : null,
-                        child: Text(
-                          model.isSaving
-                              ? 'Finalizando…'
-                              : 'Confirmar finalização',
-                        ),
+                    FilledButton(
+                      onPressed: model.canConfirm
+                          ? () => _confirm(context, model)
+                          : null,
+                      child: Text(
+                        model.isSaving
+                            ? 'Finalizando…'
+                            : 'Confirmar finalização',
                       ),
+                    ),
                   ],
                 ),
               ),

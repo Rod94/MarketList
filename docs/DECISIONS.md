@@ -238,3 +238,9 @@ F3-05: total desconhecido antes da primeira leitura é null, não zero inventado
 - Painel do produto mantém planejamento editável, mostra entradas/subtotal confirmados e permite registrar outro preço, corrigir ou excluir entrada. Formulário de entrada separa quantidade comprada do planejamento; vazio muda rótulo para Valor total. Prévia não entra na soma. Exibir valor zero não transforma gratuito em pendente.
 - Estado textual básico e total no cabeçalho são necessários para não apresentar compra registrada como pendente. F4 ainda tratará filtros, acessibilidade refinada e barra inferior fixa. Layout estreito/fonte ampliada coloca valor abaixo do status, pois trailing comprimia o nome a ponto de impedir o toque; teste revelou e confirmou a correção.
 - D-031/032/033 foram aprovadas em perguntas explícitas ao usuário. Alternativas: sugestão de reaproveitar nome; desfazer por 10 s/sem desfazer; AMOLED inicial. Escolhidas nova linha sem interrupção, desfazer 5 s enquanto permanece na tela e sistema inicial com escolha persistida. Essas decisões serão implementadas em suas tarefas, sem marcar F4 pronta agora.
+
+## Finalização transacional da Fase 5
+
+A confirmação compara identidade e data de criação da lista, orçamento, total e avisos exibidos com os dados lidos na transação. Uma mudança nesses dados atualiza a conferência, mantém a digitação do caixa e exige novo toque. Isso preserva a confirmação informada também quando outra operação altera a compra enquanto a tela está aberta.
+
+A finalização grava status, data, total calculado e caixa em uma única atualização da lista ativa. A data de conclusão usa a criação como limite inferior se o relógio do aparelho estiver adiantado na criação ou atrasado na finalização. Essa regra preserva a ordem temporal do modelo em uso offline. Os campos existentes da v1 permitem manter o banco na versão 3.

@@ -8,6 +8,8 @@ import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
 import '../support/fake_shopping_repository.dart';
 
 void main() {
+  final paidField = find.byKey(const ValueKey('checkout-paid'));
+  final confirm = find.widgetWithText(FilledButton, 'Confirmar finalização');
   FakeShoppingRepository repository({int? budget, bool withAttention = false}) {
     final repository = FakeShoppingRepository(
       lists: [
@@ -99,6 +101,70 @@ void main() {
       expect(find.text('Leite'), findsNothing);
     },
   );
+
+  testWidgets(
+    'FIN-006/017 finaliza somente após gravar e preserva o caixa no erro',
+    (tester) async {
+      final repo = repository(budget: 0, withAttention: true);
+      repo.beforeFinalize = () async => throw StateError('Falha de gravação');
+      await openReview(tester, repo);
+      await tester.ensureVisible(paidField);
+      await tester.enterText(paidField, '10,123');
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+      await tester.enterText(paidField, '25,00');
+      await tester.pumpAndSettle();
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(repo.lists.single.status, ShoppingListStatus.active);
+      expect(
+        find.textContaining('O valor digitado foi mantido'),
+        findsOneWidget,
+      );
+      expect(tester.widget<TextField>(paidField).controller!.text, '25,00');
+      repo.beforeFinalize = null;
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(find.text('Conferir compra'), findsNothing);
+      expect(
+        find.text('Lista disponível somente para consulta.'),
+        findsOneWidget,
+      );
+      expect(repo.lists.single.finalizedRegisteredTotalCents, 2450);
+      expect(repo.lists.single.checkoutPaidCents, 2500);
+    },
+  );
+
+  testWidgets('alteração simultânea atualiza a conferência e pede novo toque', (
+    tester,
+  ) async {
+    final repo = repository();
+    await openReview(tester, repo);
+    await tester.enterText(paidField, '15,00');
+    await tester.pumpAndSettle();
+    await repo.updateListBudget('list', 2000);
+    await repo.updatePurchaseEntry(
+      shoppingListId: 'list',
+      entry: PurchaseEntry(
+        id: 'leite-compra',
+        shoppingItemId: 'leite',
+        directAmountCents: 1200,
+      ),
+    );
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(repo.lists.single.status, ShoppingListStatus.active);
+    expect(
+      find.textContaining('Confira os valores atualizados'),
+      findsOneWidget,
+    );
+    expect(find.text('Total calculado pelo app: R\$ 12,00'), findsOneWidget);
+    expect(find.text('R\$ 3,00 a mais no caixa'), findsOneWidget);
+    expect(tester.widget<TextField>(paidField).controller!.text, '15,00');
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(repo.lists.single.status, ShoppingListStatus.finalized);
+  });
 
   testWidgets('FIN-002/003/010/013 agrupa avisos e mostra saldo', (
     tester,

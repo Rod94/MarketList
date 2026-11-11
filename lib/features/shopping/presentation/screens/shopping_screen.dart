@@ -26,16 +26,17 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
 
   Future<void> _openCheckout() async {
     final model = context.read<ShoppingItemsViewModel>();
-    final calculation = model.calculation;
-    if (_checkoutOpen || !model.canEdit || calculation == null) return;
-    final list = model.shoppingList;
+    if (_checkoutOpen || !model.canEdit) return;
     _checkoutOpen = true;
-    model.dismissRemovalUndo();
     try {
+      final review = await model.prepareCheckout();
+      if (review == null || !mounted) return;
+      model.dismissRemovalUndo();
       await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
-            create: (_) => CheckoutViewModel(list, calculation),
+            create: (_) =>
+                CheckoutViewModel(review, persist: model.confirmCheckout),
             child: const CheckoutScreen(),
           ),
         ),

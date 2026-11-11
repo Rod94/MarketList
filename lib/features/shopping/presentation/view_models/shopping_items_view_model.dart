@@ -7,6 +7,7 @@ import '../../../../core/money/money.dart';
 import '../../domain/models/shopping_item.dart';
 import '../../domain/models/shopping_list.dart';
 import '../../domain/models/purchase_entry.dart';
+import '../../domain/models/shopping_snapshot.dart';
 import '../../domain/shopping_calculator.dart';
 import '../../domain/shopping_repository.dart';
 import '../item_quantity_input.dart';
@@ -138,6 +139,54 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       }
     } finally {
       _loading = false;
+      _notify();
+    }
+  }
+
+  Future<ShoppingSnapshot?> prepareCheckout() async {
+    if (!canEdit) return null;
+    _loading = true;
+    _notify();
+    try {
+      final snapshot = await _repository.loadShoppingSnapshot(shoppingList.id);
+      if (_disposed) return null;
+      _acceptSnapshot(snapshot);
+      return _readOnly ? null : snapshot;
+    } catch (_) {
+      _loadError = 'Não foi possível carregar a conferência. Atualize a compra e tente novamente.';
+      return null;
+    } finally {
+      _loading = false;
+      _notify();
+    }
+  }
+
+  Future<void> confirmCheckout(
+    ShoppingSnapshot reviewed,
+    int? paidCents,
+  ) async {
+    if (!canEdit || reviewed.list.id != shoppingList.id) {
+      throw StateError('A compra não está disponível para finalização.');
+    }
+    _saving = true;
+    _notify();
+    try {
+      final result = await _repository.finalizeShoppingList(
+        reviewed,
+        checkoutPaidCents: paidCents,
+      );
+      if (!_disposed) _acceptSnapshot(result);
+    } on ShoppingReviewChangedException catch (error) {
+      if (!_disposed) _acceptSnapshot(error.current);
+      rethrow;
+    } on FinalizedShoppingListException {
+      _readOnly = true;
+      rethrow;
+    } on ShoppingListNotFoundException {
+      _readOnly = true;
+      rethrow;
+    } finally {
+      _saving = false;
       _notify();
     }
   }
@@ -581,6 +630,13 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   void _acceptCalculation(ShoppingCalculation calculation) {
     _calculation = calculation;
     _items = _ordered(calculation.items.map((summary) => summary.item));
+  }
+
+  void _acceptSnapshot(ShoppingSnapshot snapshot) {
+    _shoppingList = snapshot.list;
+    _readOnly = shoppingList.status == ShoppingListStatus.finalized;
+    if (_readOnly) _clearUndo();
+    _acceptCalculation(snapshot.calculation);
   }
 
   void _updateConfirmedItems(Iterable<ShoppingItem> values) {

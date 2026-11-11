@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:market_list/features/checkout/presentation/checkout_view_model.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
+import 'package:market_list/features/shopping/domain/models/shopping_snapshot.dart';
 import 'package:market_list/features/shopping/domain/shopping_calculator.dart';
 
 void main() {
@@ -23,9 +24,8 @@ void main() {
       final result = Completer<void>();
       final values = <int?>[];
       final model = CheckoutViewModel(
-        list,
-        calculation,
-        persist: (_, _, paid) {
+        ShoppingSnapshot(list, calculation),
+        persist: (_, paid) {
           values.add(paid);
           return result.future;
         },
@@ -46,9 +46,8 @@ void main() {
     () async {
       final values = <int?>[];
       final model = CheckoutViewModel(
-        list,
-        calculation,
-        persist: (_, _, paid) async {
+        ShoppingSnapshot(list, calculation),
+        persist: (_, paid) async {
           values.add(paid);
           if (values.length == 1) throw StateError('Falha de gravação');
         },

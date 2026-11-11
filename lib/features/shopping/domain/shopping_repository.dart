@@ -1,6 +1,7 @@
 import 'models/shopping_list.dart';
 import 'models/shopping_item.dart';
 import 'models/purchase_entry.dart';
+import 'models/shopping_snapshot.dart';
 import 'shopping_calculator.dart';
 
 abstract interface class ShoppingRepository {
@@ -14,6 +15,13 @@ abstract interface class ShoppingRepository {
   });
 
   Future<List<ShoppingList>> listActiveLists();
+
+  Future<ShoppingSnapshot> loadShoppingSnapshot(String id);
+
+  Future<ShoppingSnapshot> finalizeShoppingList(
+    ShoppingSnapshot reviewed, {
+    int? checkoutPaidCents,
+  });
 
   Future<ShoppingList> updateListBudget(String id, int? budgetCents);
 
@@ -81,6 +89,12 @@ abstract interface class ShoppingRepository {
     required String shoppingItemId,
     required String entryId,
   });
+}
+
+final class ShoppingReviewChangedException implements Exception {
+  const ShoppingReviewChangedException(this.current);
+
+  final ShoppingSnapshot current;
 }
 
 final class PurchaseEntryCreationConflict implements Exception {

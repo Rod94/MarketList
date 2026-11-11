@@ -1,6 +1,7 @@
 import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
+import 'package:market_list/features/shopping/domain/models/shopping_snapshot.dart';
 import 'package:market_list/features/shopping/domain/shopping_calculator.dart';
 import 'package:market_list/features/shopping/domain/shopping_repository.dart';
 
@@ -72,6 +73,45 @@ class FakeShoppingRepository implements ShoppingRepository {
   createHandler;
   Future<bool> Function(String id)? removeHandler;
   Future<ShoppingList> Function(String id, int? budget)? budgetHandler;
+  Future<void> Function()? beforeFinalize;
+
+  @override
+  Future<ShoppingSnapshot> loadShoppingSnapshot(String id) async {
+    final calculation = await loadShoppingList(id);
+    final index = lists.indexWhere((list) => list.id == id);
+    if (index == -1) throw ShoppingListNotFoundException(id);
+    return ShoppingSnapshot(lists[index], calculation);
+  }
+
+  @override
+  Future<ShoppingSnapshot> finalizeShoppingList(
+    ShoppingSnapshot reviewed, {
+    int? checkoutPaidCents,
+  }) async {
+    await beforeFinalize?.call();
+    final current = await loadShoppingSnapshot(reviewed.list.id);
+    final index = lists.indexWhere((list) => list.id == reviewed.list.id);
+    if (index == -1) throw ShoppingListNotFoundException(reviewed.list.id);
+    final list = lists[index];
+    if (list.status == ShoppingListStatus.finalized) {
+      throw FinalizedShoppingListException(list.id);
+    }
+    if (!current.matchesReview(reviewed)) {
+      throw ShoppingReviewChangedException(current);
+    }
+    final finalized = ShoppingList(
+      id: list.id,
+      name: list.name,
+      createdAt: list.createdAt,
+      status: ShoppingListStatus.finalized,
+      finalizedAt: list.createdAt,
+      budgetCents: list.budgetCents,
+      finalizedRegisteredTotalCents: current.calculation.totalCents,
+      checkoutPaidCents: checkoutPaidCents,
+    );
+    lists[index] = finalized;
+    return ShoppingSnapshot(finalized, current.calculation);
+  }
 
   @override
   Future<ShoppingList> updateListBudget(String id, int? budgetCents) async {
