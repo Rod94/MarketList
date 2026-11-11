@@ -1,9 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:market_list/app/app.dart';
+import 'package:market_list/features/history/data/history_spreadsheet_export.dart';
+import 'package:market_list/features/history/presentation/history_detail_screen.dart';
 import 'package:market_list/features/shopping/domain/models/purchase_entry.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_item.dart';
 import 'package:market_list/features/shopping/domain/models/shopping_list.dart';
+import 'package:market_list/features/shopping/domain/shopping_repository.dart';
+import 'package:provider/provider.dart';
 
 import '../support/fake_shopping_repository.dart';
 
@@ -220,5 +227,64 @@ void main() {
     await openDetail(tester);
     expect(find.text('Compra finalizada não encontrada.'), findsOneWidget);
     expect(find.text('Produto de compra ativa'), findsNothing);
+    expect(find.text('Exportar planilha'), findsNothing);
+  });
+
+  testWidgets('EXP-005 exporta pelo seletor e permite repetir após falha', (
+    tester,
+  ) async {
+    final actions = <HistorySpreadsheetAction>[];
+    var result = Completer<bool>();
+    await tester.pumpWidget(
+      Provider<ShoppingRepository>.value(
+        value: FakeShoppingRepository(lists: [finalized]),
+        child: MaterialApp(
+          home: HistoryDetailScreen(
+            listId: finalized.id,
+            exportSpreadsheet: (detail, action) {
+              expect(detail.list.id, finalized.id);
+              actions.add(action);
+              return result.future;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> choose(String label) async {
+      await tester.tap(find.text('Exportar planilha'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+
+    await choose('Salvar arquivo');
+    expect(actions, [HistorySpreadsheetAction.save]);
+    final busy = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, 'Exportando…'),
+    );
+    expect(busy.onPressed, isNull);
+
+    result.completeError(PlatformException(code: 'export_failed'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Não foi possível exportar a planilha. Tente novamente.'),
+      findsOneWidget,
+    );
+
+    result = Completer<bool>();
+    await choose('Salvar arquivo');
+    result.complete(true);
+    await tester.pumpAndSettle();
+    expect(find.text('Planilha salva.'), findsOneWidget);
+    expect(find.text('Exportar planilha'), findsOneWidget);
+
+    result = Completer<bool>();
+    await choose('Compartilhar arquivo');
+    result.complete(true);
+    await tester.pumpAndSettle();
+    expect(actions.last, HistorySpreadsheetAction.share);
+    expect(find.text('Exportar planilha'), findsOneWidget);
   });
 }

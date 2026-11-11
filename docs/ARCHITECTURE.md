@@ -450,3 +450,7 @@ O `ShoppingItemsViewModel` carrega o estado confirmado pelo repositório e apres
 O histórico lista compras finalizadas, abre o detalhe pelo ID e busca entradas por produto. A consulta vincula a entrada ao item e à compra original. As datas são ordenadas como instantes, com desempate estável. O detalhe mostra totais, orçamento e caixa persistidos e deriva os subtotais das entradas gravadas. A preferência de tema usa um banco de configurações separado.
 
 A regressão de banco usa arquivos temporários. O roteiro de host verifica perda de rede e troca de processo no APK normal do Android. Os resultados e o fluxo de aprendizado estão no [relatório da Fase 7](PHASE_7_REPORT.md).
+
+## 25. Exportação da compra finalizada
+
+O detalhe reaproveita seu `ShoppingSnapshot`. O exportador Dart escreve `.xlsx` em um isolate via `compute`. A formatação para reais ocorre na saída da planilha, com a lógica da compra e os totais persistidos em centavos. O canal de plataforma entrega os bytes ao Android. O seletor de documentos grava no destino escolhido e o `FileProvider` concede leitura temporária de uma cópia em cache ao app selecionado no compartilhamento. A geração independe das APIs Android, permitindo adaptar apenas a entrega do arquivo ao iOS.

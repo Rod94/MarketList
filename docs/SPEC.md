@@ -80,6 +80,7 @@ Aplicativo simples para preparar uma lista em casa, registrar os preços conform
 - Guardar listas finalizadas com nome, datas, itens, quantidades planejadas e compradas, entradas de preço, subtotais, total e estados de compra.
 - Permitir consultar compras anteriores por lista/data e localizar produtos pelo nome.
 - Preservar o **total calculado pelos produtos** e, quando informado, o **valor efetivamente cobrado no caixa**, sem substituir nenhum valor por preços de compras posteriores.
+- **Pós-MVP (RF-08a):** exportar uma compra finalizada por arquivo `.xlsx`, com abas Resumo e Itens, para salvar ou compartilhar pelo Android. A geração é local e a compra permanece somente leitura. A planilha contém o orçamento e o caixa opcionais, o total persistido, os produtos visíveis e os registros individuais de compra, incluindo preços diferentes para o mesmo produto. Ausência aparece como célula vazia e valor zero aparece como zero.
 - Exemplo: consultar em 2027 quanto custou `Arroz 5 kg` em novembro de 2026.
 - O objetivo inicial é **consulta simples**, não relatórios ou gráficos sofisticados.
 - Histórico deve funcionar sem internet.
@@ -184,7 +185,7 @@ As regras de apresentação e de persistência estão detalhadas em `DESIGN.md` 
 2. Quando se digita um nome igual a produto existente, oferecer reaproveitar o item sem bloquear duplicatas legítimas.
 3. Se houver preço direto em um item com quantidade planejada, como apresentar que a quantidade comprada não foi confirmada?
 4. Atalho para duplicar lista anterior: adiar para evolução após MVP.
-5. Exportação/backup local dos dados: analisar depois, considerando perda em desinstalação/troca de aparelho.
+5. Backup com restauração: analisar separadamente da exportação de planilha, considerando perda em desinstalação ou troca de aparelho.
 
 ## 10. Documentação complementar e fluxo
 

@@ -66,7 +66,7 @@ Este documento registra *o que decidimos* e separa essas decisões de propostas 
 | Q-004 | **Resolvida em 10/11/2026:** 5 segundos, sair da tela encerra. D-032 | F4 | Recuperação de erro |
 | Q-005 | É permitido apagar do aparelho uma lista histórica finalizada? Em caso positivo, qual confirmação? | Antes de F6 | Exclusão vs. imutabilidade |
 | Q-006 | **Resolvida em 10/11/2026:** seguir sistema inicialmente e persistir escolha. D-033 | F4-05 | Preferência visual |
-| Q-007 | Precisaremos de exportação/backup local no primeiro lançamento público? | Antes do release para público mais amplo | Risco de perda de dados por desinstalação/aparelho |
+| Q-007 | Exportação `.xlsx` de uma compra finalizada aprovada para F8-01. Backup com restauração e exigência para lançamento público permanecem abertos. | Antes do release para público mais amplo | Risco de perda de dados por desinstalação/aparelho |
 
 **Como resolver:** registrar opção escolhida, justificativa, efeito em `SPEC.md`, `DESIGN.md`, `TESTING.md`, testes novos e eventuais migrações. O Codex não deve transformar uma pergunta aberta em regra sem antes documentar a hipótese e apresentar a alternativa.
 
@@ -244,3 +244,9 @@ F3-05: total desconhecido antes da primeira leitura é null, não zero inventado
 A confirmação compara identidade e data de criação da lista, orçamento, total e avisos exibidos com os dados lidos na transação. Uma mudança nesses dados atualiza a conferência, mantém a digitação do caixa e exige novo toque. Isso preserva a confirmação informada também quando outra operação altera a compra enquanto a tela está aberta.
 
 A finalização grava status, data, total calculado e caixa em uma única atualização da lista ativa. A data de conclusão usa a criação como limite inferior se o relógio do aparelho estiver adiantado na criação ou atrasado na finalização. Essa regra preserva a ordem temporal do modelo em uso offline. Os campos existentes da v1 permitem manter o banco na versão 3.
+
+## Exportação de planilha — F8-01
+
+O usuário aprovou uma planilha `.xlsx` por compra finalizada para uso no Excel e no Google Planilhas. O resumo usa o total persistido da compra. Itens removidos ficam fora da planilha, como no Histórico. Um produto com múltiplas entradas mantém o mesmo número de item em cada linha. A quantidade planejada repetida é um atributo do item. O subtotal é por entrada e pode ser somado sem contagem dupla. Cada produto pendente aparece uma vez, com os campos de compra vazios.
+
+Valores usuais saem como números em reais, com formatação de moeda. O Excel preserva até 15 dígitos significativos. Acima de 15 dígitos em centavos ou unidades, a exportação usa texto com o valor exato. A conversão ocorre na saída e o SQLite permanece na versão 3. O compartilhamento usa uma cópia em cache que o Android pode limpar. Uma nova ação de compartilhar também tenta remover cópias temporárias com mais de 24 horas. Importação e restauração de banco continuam em aberto.

@@ -9,6 +9,7 @@ Aplicativo Flutter/Dart para compras de supermercado no Android. Listas, preços
 3. Confira o total no rodapé e use **A comprar** para filtrar a lista. Se remover um produto, o botão **Desfazer** fica disponível por cinco segundos enquanto você permanece na tela.
 4. Toque no ícone **Finalizar compra**, revise os itens e informe o valor do caixa se desejar. A confirmação grava a compra para consulta.
 5. Em **Histórico**, abra uma compra ou use a lupa para procurar um produto e consultar os preços da época.
+6. No detalhe da compra, toque em **Exportar planilha** para salvar ou compartilhar um `.xlsx` com as abas **Resumo** e **Itens**. Abra o arquivo no Excel ou no Google Planilhas.
 
 ## Executar e verificar
 
@@ -26,7 +27,7 @@ flutter build apk --release
 
 Substitua `ID_ANDROID` pelo identificador exibido em `flutter devices`. A integração usa um banco temporário e `--no-uninstall` preserva os dados da instalação. Depois dela, instale o APK normal com `adb install -r`.
 
-O APK de teste da Fase 7 é `build/app/outputs/flutter-apk/marketlist-f7-release.apk`, compilado em modo release e assinado com a chave de depuração configurada no Gradle. A versão, as ABIs e a verificação de assinatura estão no [relatório da Fase 7](docs/PHASE_7_REPORT.md).
+O APK de teste com exportação é `build/app/outputs/flutter-apk/marketlist-f8-release.apk` (`0.2.0+2`), compilado em modo release e assinado com a chave de depuração configurada no Gradle. As evidências da exportação estão em [TESTING.md](docs/TESTING.md).
 
 ### Perda de rede e reinício
 

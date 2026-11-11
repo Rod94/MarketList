@@ -7,12 +7,20 @@ import '../../shopping/domain/models/shopping_list.dart';
 import '../../shopping/domain/models/shopping_snapshot.dart';
 import '../../shopping/domain/shopping_calculator.dart';
 import '../../shopping/domain/shopping_repository.dart';
+import '../data/history_spreadsheet_export.dart';
+import '../history_status_text.dart';
 import 'history_entry_text.dart';
 
 class HistoryDetailScreen extends StatefulWidget {
-  const HistoryDetailScreen({required this.listId, super.key});
+  const HistoryDetailScreen({
+    required this.listId,
+    this.exportSpreadsheet = exportHistorySpreadsheet,
+    super.key,
+  });
 
   final String listId;
+  final Future<bool> Function(ShoppingSnapshot, HistorySpreadsheetAction)
+  exportSpreadsheet;
 
   @override
   State<HistoryDetailScreen> createState() => _HistoryDetailScreenState();
@@ -20,6 +28,7 @@ class HistoryDetailScreen extends StatefulWidget {
 
 class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
   late Future<ShoppingSnapshot> _detail;
+  bool _exporting = false;
 
   @override
   void initState() {
@@ -29,6 +38,54 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
 
   Future<ShoppingSnapshot> _load() =>
       context.read<ShoppingRepository>().loadShoppingSnapshot(widget.listId);
+
+  Future<void> _export(ShoppingSnapshot detail) async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final action = await showModalBottomSheet<HistorySpreadsheetAction>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.save_alt),
+                title: const Text('Salvar arquivo'),
+                onTap: () =>
+                    Navigator.pop(context, HistorySpreadsheetAction.save),
+              ),
+              ListTile(
+                leading: const Icon(Icons.share_outlined),
+                title: const Text('Compartilhar arquivo'),
+                onTap: () =>
+                    Navigator.pop(context, HistorySpreadsheetAction.share),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (!mounted || action == null) return;
+      final completed = await widget.exportSpreadsheet(detail, action);
+      if (mounted && completed && action == HistorySpreadsheetAction.save) {
+        _showExportMessage('Planilha salva.');
+      }
+    } catch (_) {
+      if (mounted) {
+        _showExportMessage(
+          'Não foi possível exportar a planilha. Tente novamente.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  void _showExportMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -110,6 +167,14 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                     Text('Orçamento: ${formatMoneyCents(budget)}'),
                   if (detail.list.checkoutPaidCents case final paid?)
                     Text('Valor pago no caixa: ${formatMoneyCents(paid)}'),
+                  const SizedBox(height: AppSpacing.small),
+                  OutlinedButton.icon(
+                    onPressed: _exporting ? null : () => _export(detail),
+                    icon: const Icon(Icons.file_download_outlined),
+                    label: Text(
+                      _exporting ? 'Exportando…' : 'Exportar planilha',
+                    ),
+                  ),
                   if (items.isEmpty)
                     const Padding(
                       padding: EdgeInsets.only(top: AppSpacing.medium),
@@ -145,14 +210,7 @@ class _HistoryItem extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
-          Text(switch (status) {
-            ItemPurchaseStatus.pending => 'Não comprado',
-            ItemPurchaseStatus.partial => 'Compra parcial',
-            ItemPurchaseStatus.purchased => 'Comprado',
-            ItemPurchaseStatus.quantityUnconfirmed =>
-              'Quantidade não confirmada',
-            ItemPurchaseStatus.removed => 'Removido',
-          }),
+          Text(historyStatusText(status)),
           if (summary.item.plannedQuantity case final planned?)
             Text('Planejado: $planned'),
           if (summary.purchasedQuantity case final purchased?

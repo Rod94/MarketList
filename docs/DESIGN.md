@@ -141,6 +141,7 @@ Se houver pendências, o usuário ainda pode finalizar. Itens sem entradas ficam
 
 - Listar compras finalizadas com nome, data e total registrado.
 - Detalhe com itens, quantidades planejadas/compradas, entradas por preço, subtotais e itens não comprados.
+- No detalhe da compra finalizada, **Exportar planilha** oferece **Salvar arquivo** e **Compartilhar arquivo**. A geração bloqueia novo toque até terminar. Salvar confirma após a gravação, cancelar retorna ao detalhe e uma falha permite tentar novamente.
 - Quando informado, mostrar separadamente `Total calculado` e `Valor pago no caixa`.
 - Permitir procurar nome de produto para consultar preços anteriores (ex.: `Arroz 5 kg` em novembro/2026).
 - Nenhum botão de alteração, adicionar preço ou reabrir compra no detalhe histórico.

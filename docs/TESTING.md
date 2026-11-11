@@ -610,3 +610,19 @@ O RED em `flutter test test/widget/shopping_screen_test.dart --plain-name F7-03 
 - `apksigner verify --verbose --print-certs` aprovou a assinatura v2, certificado `CN=Android Debug`, conforme a configuração de distribuição de teste do Gradle.
 - SHA-256 do APK `2dd5c706e06e2fb07c176ea3829c33b3e4da924094fae701a32dea1798f7370b`.
 - `adb install -r` retornou `Success` e `adb shell am start -W -n br.com.rodolpho.marketlist/.MainActivity` retornou `Status: ok` em abertura a frio. A inspeção por ADB confirmou a navegação de Minhas listas ao Histórico, à busca e de volta à tela inicial.
+
+## 41. F8-01 — exportação `.xlsx`
+
+| Caso | Verificação |
+| --- | --- |
+| EXP-001 | Duas abas, totais distintos, uma linha por entrada e produtos pendentes. Itens removidos ficam fora. |
+| EXP-002 | Preço zero, orçamento zero, campos ausentes, compra vazia, quantidade desconhecida e nome com aparência de fórmula gravado como texto. |
+| EXP-003 | Quantidade e centavos no limite de 64 bits exportados sem arredondamento. |
+| EXP-004 | Exportação indisponível para compra ativa no detalhe e recusada pelo exportador. |
+| EXP-005 | Botão desativado durante a exportação, erro com nova tentativa, confirmação ao salvar e ação de compartilhar. |
+
+- `dart format` aplicado aos arquivos Dart alterados. `flutter analyze --no-pub` terminou sem apontamentos e `flutter test --no-pub --reporter expanded` passou **361 testes**.
+- `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --plain-name 'F6 Android busca dois meses' --reporter expanded` passou o cenário de regressão do Histórico no Samsung.
+- `flutter run --no-resident -d RXCY300NZZH -t build/f8_validation.dart` abriu um banco fictício em memória no Samsung. O seletor nativo salvou o `.xlsx` em Downloads, cancelar o seletor devolveu o controle ao detalhe e o compartilhamento abriu o menu do Android. As duas cópias tinham as mesmas abas, linhas e valores no XML interno. As cópias de teste do telefone foram removidas após a conferência.
+- O Excel 16.0 abriu a planilha salva no Samsung em modo somente leitura. As abas Resumo e Itens foram lidas, incluindo orçamento de R$ 0,00, total de R$ 13,22, caixa de R$ 13,35 e entrada direta com quantidade vazia. A abertura no Google Planilhas não foi executada nesta sessão.
+- `flutter build apk --release` gerou o APK de teste `marketlist-f8-release.apk` (`0.2.0+2`, SDK mínimo 24). `aapt dump permissions` confirmou a ausência de permissão de rede ou de armazenamento amplo no APK release. `apksigner verify --verbose --print-certs` confirmou assinatura de depuração v2. `adb install -r` retornou `Success` e a abertura a frio retornou `Status: ok` no Samsung.

@@ -157,18 +157,24 @@
 
 **Atenção:** usar armazenamento local sem sincronização tem risco de perda por desinstalação ou perda do aparelho. **Backup/exportação é evolução separada**, não prometer segurança de dados externos inexistente.
 
+## Fase 8 — Exportação de planilha (pós-MVP)
+
+| Tarefa | Entrega | Critério de conclusão |
+| --- | --- | --- |
+| F8-01 | Exportar uma compra finalizada para Excel e Google Planilhas | **Feito:** `.xlsx` gerado localmente com abas Resumo e Itens. Salvamento e seletor de compartilhamento validados no Samsung. Planilha aberta no Excel, com 361 testes Flutter e regressão do Histórico aprovados. Abertura no Google Planilhas pendente de validação direta. |
+
 ## Futuro / fora do MVP
 
 - Duplicar lista anterior (CT-042): requer aprovação posterior.
 - Sincronizar aparelhos/contas, backend/login e solução de conflitos offline.
 - Publicar versão iOS: novo ciclo de build/teste/distribuição, sem reescrever o domínio.
-- Backup/exportação, reconhecimento de código de barras, gráficos e relatórios de preços.
+- Backup com restauração, exportação de várias listas de uma vez, reconhecimento de código de barras, gráficos e relatórios de preços.
 
 ## Próxima tarefa recomendada ao Codex
 
 **Fase 7 concluída.** O APK de teste Android e as evidências estão no [relatório da Fase 7](PHASE_7_REPORT.md).
 
-**Estado atual:** Fases 0 a 7 concluídas para o APK de teste Android. O banco de compras está na versão 3. Evidências e limites em [TESTING.md](TESTING.md).
+**Estado atual:** Fases 0 a 7 concluídas para o MVP Android. F8-01 entregue no APK de teste 0.2.0+2. O banco de compras está na versão 3. Evidências e limites em [TESTING.md](TESTING.md).
 
 ## Retomada da pausa — 10/11/2026
 
