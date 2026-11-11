@@ -130,8 +130,39 @@ void main() {
         find.text('Lista disponível somente para consulta.'),
         findsOneWidget,
       );
+      expect(find.text('Compra finalizada'), findsOneWidget);
+      expect(find.text('Não comprado'), findsOneWidget);
+      expect(find.text('Valor cobrado no caixa: R\$ 25,00'), findsOneWidget);
+      expect(find.text('Total registrado: R\$ 24,50'), findsOneWidget);
+      expect(find.byTooltip('Finalizar compra'), findsNothing);
+      expect(find.byKey(const ValueKey('add-item')), findsNothing);
       expect(repo.lists.single.finalizedRegisteredTotalCents, 2450);
       expect(repo.lists.single.checkoutPaidCents, 2500);
+    },
+  );
+
+  testWidgets(
+    'conferência mantém o botão acima do teclado com fonte ampliada',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        tester.view.resetViewInsets();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+      await openReview(tester, repository());
+      await tester.scrollUntilVisible(paidField, 100);
+      await tester.enterText(paidField, '11,00');
+      tester.view.viewInsets = const FakeViewPadding(bottom: 250);
+      await tester.pumpAndSettle();
+      final action = find.byKey(const ValueKey('confirm-checkout'));
+      expect(action.hitTestable(), findsOneWidget);
+      expect(tester.getBottomRight(action).dy, lessThanOrEqualTo(318));
+      expect(find.text('Total: R\$ 10,00'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     },
   );
 

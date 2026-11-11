@@ -30,10 +30,38 @@ void main() {
   late FakeShoppingRepository repository;
   late ShoppingItemsViewModel model;
   setUp(() {
-    repository = FakeShoppingRepository();
+    repository = FakeShoppingRepository(lists: [list]);
     model = ShoppingItemsViewModel(repository, list);
   });
   tearDown(() => model.dispose());
+
+  test(
+    'FIN-016 recarrega estado finalizado e usa o total histórico persistido',
+    () async {
+      repository.items.add(item());
+      await model.load();
+      expect(model.canEdit, isTrue);
+      repository.lists[0] = ShoppingList(
+        id: list.id,
+        name: list.name,
+        createdAt: list.createdAt,
+        status: ShoppingListStatus.finalized,
+        finalizedAt: list.createdAt,
+        finalizedRegisteredTotalCents: 12345,
+        checkoutPaidCents: 0,
+      );
+      await model.load();
+      expect(model.isFinalized, isTrue);
+      expect(model.totalCents, 12345);
+      expect(model.shoppingList.checkoutPaidCents, 0);
+      expect(model.beginCreate(), isFalse);
+      expect(model.beginEdit(model.items.single), isFalse);
+      expect(await model.saveDraft(), isFalse);
+      expect(await model.removeEditingItem(), isFalse);
+      expect(await model.saveBudget('10,00'), isNotNull);
+      expect(await model.prepareCheckout(), isNull);
+    },
+  );
 
   test('quantidade em branco continua null; inteiros positivos são exatos', () {
     expect(parsePlannedQuantity(' '), isNull);

@@ -41,6 +41,9 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
           ),
         ),
       );
+      if (mounted && model.readOnly && !model.isFinalized) {
+        await model.load();
+      }
     } finally {
       _checkoutOpen = false;
     }
@@ -120,7 +123,8 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
     final itemsToBuy = allItems
         .where((summary) => summary.status != ItemPurchaseStatus.purchased)
         .toList();
-    final visibleItems = _onlyToBuy ? itemsToBuy : allItems;
+    final filtering = _onlyToBuy && !model.readOnly;
+    final visibleItems = filtering ? itemsToBuy : allItems;
     final compactAmounts =
         MediaQuery.sizeOf(context).width < 360 ||
         MediaQuery.textScalerOf(context).scale(14) > 20;
@@ -162,9 +166,21 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                   semanticsLabel: 'Carregando produtos',
                 ),
               if (model.readOnly)
-                const Padding(
-                  padding: EdgeInsets.all(AppSpacing.medium),
-                  child: Text('Lista disponível somente para consulta.'),
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.medium),
+                  child: Column(
+                    children: [
+                      if (model.isFinalized) const Text('Compra finalizada'),
+                      const Text('Lista disponível somente para consulta.'),
+                      if (model.shoppingList.budgetCents case final budget?
+                          when model.isFinalized)
+                        Text('Orçamento: ${formatListBudget(budget)}'),
+                      if (model.shoppingList.checkoutPaidCents case final paid?)
+                        Text(
+                          'Valor cobrado no caixa: ${formatMoneyCents(paid)}',
+                        ),
+                    ],
+                  ),
                 ),
               if (model.loadError != null)
                 Padding(
@@ -182,7 +198,7 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                     ],
                   ),
                 ),
-              if (model.hasLoaded)
+              if (model.hasLoaded && !model.readOnly)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.medium,
@@ -218,7 +234,7 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                           model.isLoading
                               ? 'Carregando produtos…'
                               : model.hasLoaded && model.loadError == null
-                              ? _onlyToBuy
+                              ? filtering
                                     ? 'Nenhum produto a comprar.'
                                     : 'Nenhum produto nesta lista.'
                               : '',
@@ -262,7 +278,13 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(purchaseStatusText(summary)),
+                                  Text(
+                                    model.isFinalized &&
+                                            summary.status ==
+                                                ItemPurchaseStatus.pending
+                                        ? 'Não comprado'
+                                        : purchaseStatusText(summary),
+                                  ),
                                   if (compactAmounts) Text(subtotal),
                                 ],
                               ),
@@ -270,12 +292,15 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                                   ? () => _openForm(context, item)
                                   : null,
                               trailing: compactAmounts
-                                  ? const Icon(Icons.chevron_right)
+                                  ? model.readOnly
+                                        ? null
+                                        : const Icon(Icons.chevron_right)
                                   : Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(subtotal),
-                                        const Icon(Icons.chevron_right),
+                                        if (!model.readOnly)
+                                          const Icon(Icons.chevron_right),
                                       ],
                                     ),
                             ),
@@ -337,12 +362,15 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                             : null,
                       ),
                     ),
-                  FilledButton.icon(
-                    key: const ValueKey('add-item'),
-                    onPressed: model.canEdit ? () => _openForm(context) : null,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Adicionar produto'),
-                  ),
+                  if (!model.readOnly)
+                    FilledButton.icon(
+                      key: const ValueKey('add-item'),
+                      onPressed: model.canEdit
+                          ? () => _openForm(context)
+                          : null,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Adicionar produto'),
+                    ),
                 ],
               ),
             ),

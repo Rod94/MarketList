@@ -514,3 +514,19 @@ Para D-032, os testes de widget verificam restauração do subtotal e da posiç�
 - `python tool/verify_android_offline.py --adb <caminho-adb> --serial RXCY300NZZH --run --purchases` passou no APK normal. Com modo avião ativo e sem rede padrão, o ensaio registrou três unidades de R$ 4,22 e uma compra de R$ 47,82 por valor direto. Após trocar o processo, a tela recuperou as duas compras, o total de R$ 60,48 e mostrou R$ 62,97 disponíveis. A captura com teclado real mostra o botão Salvar produto acima do teclado. O roteiro removeu a lista criada para o ensaio e confirmou a restauração da rede e da configuração de tela. Evidências em `build/offline_verification_f3/`.
 
 A leitura em voz alta com TalkBack segue pendente de inspeção manual. Os testes de semântica verificam os dados disponibilizados ao leitor de tela.
+
+## 30. Fase 5 — conferência e finalização
+
+Os testes de domínio cobrem FIN-002, FIN-003 e FIN-013. Preservam a ordem e a soma quando a conferência reúne itens pendentes, parciais e com quantidade não confirmada. O teste RED da F5-01 falhou pela ausência da agregação. O teste RED da F5-05 falhou pela ausência da operação transacional.
+
+Na interface, os testes cobrem a revisão mesmo com todos os itens comprados, orçamento opcional, saldo e excedente, retorno à edição, validação do caixa e diferença em centavos. Um teste de confirmação concorrente preserva o rascunho e exige novo toque quando os dados revisados mudam. O teste em tela de 320 × 568, fonte 2× e teclado simulado reproduziu sobreposição. Com rótulos mais curtos nesse espaço, o total e a confirmação ficam acessíveis.
+
+Os testes SQLite conferem caixa vazio e zero, persistência separada dos valores, dupla finalização, rollback SQL e bloqueio de todas as gravações sobre uma compra finalizada. A leitura usa o total final armazenado, inclusive para compras antigas. O banco de compras continua na versão 3.
+
+- `dart format` nos oito arquivos Dart da F5-06 deixou todos no padrão do formatador.
+- `flutter analyze` terminou sem apontamentos.
+- `flutter test --reporter expanded` passou **330 testes**.
+- `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **27 testes** no Samsung. O aparelho estava em modo avião, com Wi-Fi desligado e sem rede padrão antes e depois da suíte. O caso F5 provocou falha SQL, manteve a compra ativa e preservou o caixa digitado. A nova tentativa abriu a compra somente para consulta e retirou a lista das ativas. Ao reabrir o SQLite, o total registrado de R$ 10,50, o caixa de R$ 11,50 e as duas unidades faltantes permaneceram disponíveis.
+- `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f5-debug.apk`. Instalação com `adb install -r` retornou `Success` e abertura a frio retornou `Status: ok`. As configurações de rede e tela foram restauradas.
+
+A listagem de compras anteriores e a navegação de histórico pertencem à Fase 6.

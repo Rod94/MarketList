@@ -123,7 +123,7 @@
 | F5-03 | Valor cobrado no caixa opcional + diferença | **Feito na conferência:** caixa vazio ou zero distintos, diferença em centavos e erro de formato. 317 testes aprovados. Persistência na F5-05 |
 | F5-04 | Ações `Voltar e revisar` e `Confirmar finalização` | **Feito:** retorno à edição e confirmação protegida por callback; 320 testes aprovados. Conexão ao SQLite na F5-05 |
 | F5-05 | Operação atômica no SQLite; bloqueio de dupla finalização | **Feito:** confirmação ligada ao SQLite, comparação com a conferência, rollback, concorrência e caixa separado. 327 testes aprovados |
-| F5-06 | Impedir gravações em finalizada no ViewModel/repositório | CT-046, FIN-016 |
+| F5-06 | Impedir gravações em finalizada no ViewModel/repositório | **Feito:** consulta imediata e bloqueio das mutações, inclusive com estado carregado antes da finalização. 330 testes Flutter e 27 no Samsung em modo avião |
 
 **Explicações didáticas:** transação, invariantes, concorrência, por que não basta desabilitar botões na UI.
 
@@ -166,9 +166,9 @@
 
 ## Próxima tarefa recomendada ao Codex
 
-**Fase 5 em andamento.** O próximo item do plano é **F5-06**, proteção e consulta da compra finalizada.
+**Fase 5 concluída.** O próximo item do plano é **F6-01**, listagem das compras finalizadas por data.
 
-**Estado atual:** Fases 0 a 4 implementadas. Cadastro, filtros, orçamento e Desfazer disponíveis no Android com banco de compras v3. Evidências e pendências de validação estão em `TESTING.md`.
+**Estado atual:** Fases 0 a 5 implementadas. O Android permite conferir e finalizar offline e exibe a compra em modo somente leitura após a confirmação. O banco de compras continua na versão 3. Evidências em `TESTING.md`.
 
 ## Retomada da pausa — 10/11/2026
 

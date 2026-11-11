@@ -207,6 +207,81 @@ void main() {
   });
 
   test(
+    'CT-046/FIN-016 todas as gravações recusam a compra finalizada',
+    () async {
+      await repository.createPurchaseEntry(
+        shoppingListId: 'list',
+        entry: entry(),
+      );
+      final removedAt = (await repository.removeItemForUndo(
+        id: 'milk',
+        shoppingListId: 'list',
+      ))!;
+      final review = await repository.loadShoppingSnapshot('list');
+      await repository.finalizeShoppingList(review, checkoutPaidCents: 1111);
+      final before = [
+        await db.query('shopping_lists'),
+        await db.query('shopping_items'),
+        await db.query('purchase_entries'),
+      ];
+      final mutations = <Future<Object?> Function()>[
+        () => repository.createList(id: 'list', name: 'Compra'),
+        () => repository.removeActiveList('list'),
+        () => repository.updateListBudget('list', 0),
+        () => repository.createItem(
+          id: 'new',
+          shoppingListId: 'list',
+          name: 'Novo',
+          origin: ShoppingItemOrigin.planned,
+        ),
+        () => repository.createItemWithPurchase(
+          id: 'new',
+          shoppingListId: 'list',
+          name: 'Novo',
+          entry: entry(id: 'new-entry', item: 'new'),
+        ),
+        () => repository.updateItem(
+          id: 'soap',
+          shoppingListId: 'list',
+          name: 'Outro',
+          plannedQuantity: null,
+        ),
+        () => repository.removeItem(id: 'soap', shoppingListId: 'list'),
+        () => repository.restoreRemovedItem(
+          id: 'milk',
+          shoppingListId: 'list',
+          removedAt: removedAt,
+        ),
+        () => repository.createPurchaseEntry(
+          shoppingListId: 'list',
+          entry: entry(id: 'another'),
+        ),
+        () => repository.updatePurchaseEntry(
+          shoppingListId: 'list',
+          entry: entry(price: 420),
+        ),
+        () => repository.removePurchaseEntry(
+          shoppingListId: 'list',
+          shoppingItemId: 'soap',
+          entryId: 'e',
+        ),
+        () => repository.finalizeShoppingList(review, checkoutPaidCents: 0),
+      ];
+      for (final mutate in mutations) {
+        await expectLater(
+          mutate(),
+          throwsA(isA<FinalizedShoppingListException>()),
+        );
+      }
+      expect([
+        await db.query('shopping_lists'),
+        await db.query('shopping_items'),
+        await db.query('purchase_entries'),
+      ], before);
+    },
+  );
+
+  test(
     'CT-009/010: vários preços retornam fotografia confirmada com total exato',
     () async {
       await repository.createPurchaseEntry(

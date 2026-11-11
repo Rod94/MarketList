@@ -42,6 +42,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final compact =
         MediaQuery.sizeOf(context).width < 360 ||
         MediaQuery.textScalerOf(context).scale(14) > 20;
+    final condensed = compact && keyboardOpen;
+    final totalLabel = condensed ? 'Total' : 'Total calculado pelo app';
     return PopScope(
       canPop: !model.isSaving,
       child: Scaffold(
@@ -53,7 +55,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.medium),
                 child: Text(
-                  'Total calculado pelo app: ${formatMoneyCents(calculation.totalCents)}',
+                  '$totalLabel: ${formatMoneyCents(calculation.totalCents)}',
                   style: compact
                       ? theme.textTheme.titleMedium
                       : theme.textTheme.titleLarge,
@@ -128,7 +130,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ],
                 ),
               ),
-              if (model.saveError case final error?)
+              if (model.saveError case final error? when !keyboardOpen)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.medium,
@@ -159,12 +161,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: const Text('Voltar e revisar'),
                       ),
                     FilledButton(
+                      key: const ValueKey('confirm-checkout'),
                       onPressed: model.canConfirm
                           ? () => _confirm(context, model)
                           : null,
                       child: Text(
                         model.isSaving
                             ? 'Finalizando…'
+                            : condensed
+                            ? 'Confirmar'
                             : 'Confirmar finalização',
                       ),
                     ),

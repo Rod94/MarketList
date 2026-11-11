@@ -50,6 +50,83 @@ void main() {
     expect(find.text('Minhas listas'), findsOneWidget);
   }
 
+  testWidgets(
+    'F5 Android confirma após retry e reabre a compra somente para consulta',
+    (tester) async {
+      const id = 'f5';
+      await repository.createList(id: id, name: 'Compra F5', budgetCents: 1000);
+      await repository.createItem(
+        id: 'sabonete',
+        shoppingListId: id,
+        name: 'Sabonete',
+        origin: ShoppingItemOrigin.planned,
+        plannedQuantity: 5,
+      );
+      await repository.createItem(
+        id: 'azeite',
+        shoppingListId: id,
+        name: 'Azeite',
+        origin: ShoppingItemOrigin.planned,
+      );
+      await repository.createPurchaseEntry(
+        shoppingListId: id,
+        entry: PurchaseEntry(
+          id: 'preco',
+          shoppingItemId: 'sabonete',
+          quantity: 3,
+          unitPriceCents: 350,
+        ),
+      );
+      await db.execute('''
+      CREATE TRIGGER fail_checkout AFTER UPDATE OF status ON shopping_lists
+      WHEN NEW.status = 'finalized'
+      BEGIN SELECT RAISE(ABORT, 'falha simulada'); END
+    ''');
+      await openApp(tester);
+      await tester.tap(find.text('Compra F5'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Finalizar compra'));
+      await tester.pumpAndSettle();
+      expect(find.text('Parcial · faltaram 2'), findsOneWidget);
+      expect(find.text('Sem compra registrada'), findsOneWidget);
+      expect(find.text('R\$ 0,50 acima do orçamento'), findsOneWidget);
+      final paid = find.byKey(const ValueKey('checkout-paid'));
+      await tester.ensureVisible(paid);
+      await tester.enterText(paid, '11,50');
+      await tester.pumpAndSettle();
+      final confirm = find.text('Confirmar finalização');
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('O valor digitado foi mantido'),
+        findsOneWidget,
+      );
+      expect(tester.widget<TextField>(paid).controller!.text, '11,50');
+      expect((await repository.listActiveLists()).single.id, id);
+      await db.execute('DROP TRIGGER fail_checkout');
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(find.text('Compra finalizada'), findsOneWidget);
+      expect(find.text('Não comprado'), findsOneWidget);
+      expect(find.text('Total registrado: R\$ 10,50'), findsOneWidget);
+      expect(find.text('Valor cobrado no caixa: R\$ 11,50'), findsOneWidget);
+      expect(find.byKey(const ValueKey('add-item')), findsNothing);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Minhas listas'), findsOneWidget);
+      expect(find.text('Compra F5'), findsNothing);
+
+      await db.close();
+      final reopened = AppDatabase(path: p.join(directory.path, 'ui.db'));
+      db = await reopened.open();
+      final persisted = await SqliteShoppingRepository(reopened)
+          .loadShoppingSnapshot(id);
+      expect(persisted.list.finalizedRegisteredTotalCents, 1050);
+      expect(persisted.list.checkoutPaidCents, 1150);
+      expect(persisted.calculation.items.first.missingQuantity, 2);
+    },
+  );
+
   testWidgets('F4 Android: filtro, total, orçamento e desfazer', (
     tester,
   ) async {

@@ -43,7 +43,7 @@ void main() {
     unitPriceCents: price,
   );
   setUp(() {
-    repository = FakeShoppingRepository(items: [item]);
+    repository = FakeShoppingRepository(lists: [list], items: [item]);
     model = ShoppingItemsViewModel(repository, list);
   });
   tearDown(() => model.dispose());

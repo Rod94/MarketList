@@ -60,6 +60,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   bool get isBusy => _loading || _saving;
   bool get hasLoaded => _hasLoaded;
   bool get readOnly => _readOnly;
+  bool get isFinalized => shoppingList.status == ShoppingListStatus.finalized;
   bool get canEdit =>
       !_disposed && _hasLoaded && _loadError == null && !isBusy && !_readOnly;
   bool get hasRemovalToUndo => _removalToUndo != null && !_readOnly;
@@ -86,7 +87,8 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   String? get saveError => _saveError;
   String? get nameError => _nameError;
   String? get quantityError => _quantityError;
-  int? get totalCents => _calculation?.totalCents;
+  int? get totalCents =>
+      shoppingList.finalizedRegisteredTotalCents ?? _calculation?.totalCents;
   ShoppingCalculation? get calculation => _calculation;
   int? get remainingBudgetCents {
     final budget = shoppingList.budgetCents;
@@ -129,10 +131,16 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     _loadError = null;
     _notify();
     try {
-      final loaded = await _repository.loadShoppingList(shoppingList.id);
+      final loaded = await _repository.loadShoppingSnapshot(shoppingList.id);
       if (_disposed) return;
-      _acceptCalculation(loaded);
+      _acceptSnapshot(loaded);
       _hasLoaded = true;
+    } on ShoppingListNotFoundException {
+      if (!_disposed) {
+        _readOnly = true;
+        _loadError = 'Esta lista não está mais disponível.';
+        _clearUndo();
+      }
     } catch (_) {
       if (!_disposed) {
         _loadError = 'Não foi possível carregar os produtos. Tente novamente.';
@@ -145,20 +153,11 @@ class ShoppingItemsViewModel extends ChangeNotifier {
 
   Future<ShoppingSnapshot?> prepareCheckout() async {
     if (!canEdit) return null;
-    _loading = true;
-    _notify();
-    try {
-      final snapshot = await _repository.loadShoppingSnapshot(shoppingList.id);
-      if (_disposed) return null;
-      _acceptSnapshot(snapshot);
-      return _readOnly ? null : snapshot;
-    } catch (_) {
-      _loadError = 'Não foi possível carregar a conferência. Atualize a compra e tente novamente.';
-      return null;
-    } finally {
-      _loading = false;
-      _notify();
-    }
+    await load();
+    final calculation = _calculation;
+    return canEdit && calculation != null
+        ? ShoppingSnapshot(shoppingList, calculation)
+        : null;
   }
 
   Future<void> confirmCheckout(
@@ -181,6 +180,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       rethrow;
     } on FinalizedShoppingListException {
       _readOnly = true;
+      _clearUndo();
       rethrow;
     } on ShoppingListNotFoundException {
       _readOnly = true;
@@ -634,7 +634,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
 
   void _acceptSnapshot(ShoppingSnapshot snapshot) {
     _shoppingList = snapshot.list;
-    _readOnly = shoppingList.status == ShoppingListStatus.finalized;
+    _readOnly = isFinalized;
     if (_readOnly) _clearUndo();
     _acceptCalculation(snapshot.calculation);
   }
