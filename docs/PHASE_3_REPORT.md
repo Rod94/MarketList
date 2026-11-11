@@ -99,3 +99,5 @@ Arquivos envolvidos: contrato e implementação do repositório, ViewModel, form
 Para validar no aparelho, adicione Leite com quantidade 3 e preço 4,22. A prévia indica R$ 12,66 e a confirmação soma esse valor à lista. Como exercício, registre Carne com valor direto 47,82 e confira R$ 60,48 após reabrir. A transação equivale a uma unidade de trabalho em C#: ambas as escritas confirmam juntas.
 
 `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --reporter expanded` passou os **11 cenários** no Samsung. `flutter build apk --debug` gerou o APK de desenvolvimento em `build/app/outputs/flutter-apk/marketlist-f3-07-debug.apk`.
+
+O cenário de reinício offline de compras foi validado no APK da Fase 4. O Samsung recuperou os dois preços e o total de R$ 60,48 após reabrir em modo avião. A evidência consta em `TESTING.md`.

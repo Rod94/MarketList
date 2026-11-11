@@ -50,6 +50,48 @@ void main() {
     expect(find.text('Minhas listas'), findsOneWidget);
   }
 
+  testWidgets('F4 Android: filtro, total, orçamento e desfazer', (
+    tester,
+  ) async {
+    await repository.createList(id: 'f4', name: 'Compra F4', budgetCents: 1000);
+    await repository.createItem(
+      id: 'partial',
+      shoppingListId: 'f4',
+      name: 'Feijão',
+      origin: ShoppingItemOrigin.planned,
+      plannedQuantity: 5,
+    );
+    await repository.createPurchaseEntry(
+      shoppingListId: 'f4',
+      entry: PurchaseEntry(
+        id: 'entry',
+        shoppingItemId: 'partial',
+        quantity: 3,
+        unitPriceCents: 350,
+      ),
+    );
+    await openApp(tester);
+    await tester.tap(find.text('Compra F4'));
+    await tester.pumpAndSettle();
+    expect(find.text('R\$ 0,50 acima do orçamento'), findsOneWidget);
+    await tester.tap(find.text('A comprar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Parcial · 3 de 5'), findsOneWidget);
+    expect(find.text('Total registrado: R\$ 10,50'), findsOneWidget);
+    await tester.tap(find.text('Feijão'));
+    await tester.pumpAndSettle();
+    final remove = find.byKey(const ValueKey('remove-item'));
+    await tester.ensureVisible(remove);
+    await tester.tap(remove);
+    await tester.pumpAndSettle();
+    expect(find.text('Total registrado: R\$ 0,00'), findsOneWidget);
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Feijão'), findsOneWidget);
+    expect(find.text('R\$ 0,50 acima do orçamento'), findsOneWidget);
+    expect((await repository.loadShoppingList('f4')).totalCents, 1050);
+  });
+
   testWidgets(
     'F3-07 Android: rollback da inclusão rápida e reabertura com preço',
     (tester) async {

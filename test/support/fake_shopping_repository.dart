@@ -221,16 +221,27 @@ class FakeShoppingRepository implements ShoppingRepository {
   Future<bool> removeItem({
     required String id,
     required String shoppingListId,
+  }) async =>
+      await removeItemForUndo(id: id, shoppingListId: shoppingListId) != null;
+
+  @override
+  Future<DateTime?> removeItemForUndo({
+    required String id,
+    required String shoppingListId,
   }) async {
     itemRemoveCalls++;
-    if (itemRemoveHandler != null) {
-      return itemRemoveHandler!(id, shoppingListId);
-    }
+    final handler = itemRemoveHandler;
+    if (handler != null && !await handler(id, shoppingListId)) return null;
     final index = items.indexWhere(
       (i) => i.id == id && i.shoppingListId == shoppingListId,
     );
-    if (index < 0 || items[index].removedAt != null) return false;
+    if (index < 0 || items[index].removedAt != null) return null;
     final original = items[index];
+    final removedAt = DateTime.utc(
+      2026,
+      11,
+      10,
+    ).add(Duration(microseconds: itemRemoveCalls));
     items[index] = ShoppingItem(
       id: id,
       shoppingListId: shoppingListId,
@@ -238,9 +249,39 @@ class FakeShoppingRepository implements ShoppingRepository {
       plannedQuantity: original.plannedQuantity,
       origin: original.origin,
       sortOrder: original.sortOrder,
-      removedAt: DateTime.utc(2026, 11, 10),
+      removedAt: removedAt,
     );
-    return true;
+    return removedAt;
+  }
+
+  @override
+  Future<ShoppingCalculation?> restoreRemovedItem({
+    required String id,
+    required String shoppingListId,
+    required DateTime removedAt,
+  }) async {
+    final index = items.indexWhere(
+      (item) =>
+          item.id == id &&
+          item.shoppingListId == shoppingListId &&
+          item.removedAt == removedAt,
+    );
+    if (index < 0) return null;
+    final original = items[index];
+    items[index] = ShoppingItem(
+      id: original.id,
+      shoppingListId: original.shoppingListId,
+      name: original.name,
+      plannedQuantity: original.plannedQuantity,
+      origin: original.origin,
+      sortOrder: original.sortOrder,
+    );
+    try {
+      return await loadShoppingList(shoppingListId);
+    } catch (_) {
+      items[index] = original;
+      rethrow;
+    }
   }
 
   @override

@@ -338,6 +338,37 @@ final class SqliteShoppingRepository implements ShoppingRepository {
   Future<bool> removeItem({
     required String id,
     required String shoppingListId,
+  }) async =>
+      await removeItemForUndo(id: id, shoppingListId: shoppingListId) != null;
+
+  @override
+  Future<DateTime?> removeItemForUndo({
+    required String id,
+    required String shoppingListId,
+  }) async {
+    _validateId(id, 'id');
+    final db = await _database.open();
+    return db.transaction((txn) async {
+      await _requireList(txn, shoppingListId, writable: true);
+      final removedAt = _now().toUtc();
+      final changed = await txn.update(
+        'shopping_items',
+        {'removed_at_utc': _formatUtc(removedAt)},
+        where: 'id = ? AND shopping_list_id = ? AND removed_at_utc IS NULL',
+        whereArgs: [id, shoppingListId],
+      );
+      if (changed > 1) {
+        throw StateError('Mais de um item afetado pela remoção.');
+      }
+      return changed == 1 ? removedAt : null;
+    });
+  }
+
+  @override
+  Future<ShoppingCalculation?> restoreRemovedItem({
+    required String id,
+    required String shoppingListId,
+    required DateTime removedAt,
   }) async {
     _validateId(id, 'id');
     final db = await _database.open();
@@ -345,14 +376,13 @@ final class SqliteShoppingRepository implements ShoppingRepository {
       await _requireList(txn, shoppingListId, writable: true);
       final changed = await txn.update(
         'shopping_items',
-        {'removed_at_utc': _formatUtc(_now())},
-        where: 'id = ? AND shopping_list_id = ? AND removed_at_utc IS NULL',
-        whereArgs: [id, shoppingListId],
+        {'removed_at_utc': null},
+        where: 'id = ? AND shopping_list_id = ? AND removed_at_utc = ?',
+        whereArgs: [id, shoppingListId, _formatUtc(removedAt)],
       );
-      if (changed > 1) {
-        throw StateError('Mais de um item afetado pela remoção.');
-      }
-      return changed == 1;
+      if (changed == 0) return null;
+      // Valide o total antes do commit caso outras compras tenham sido salvas.
+      return _calculateTransaction(txn, shoppingListId);
     });
   }
 

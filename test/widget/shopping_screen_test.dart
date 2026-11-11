@@ -113,6 +113,8 @@ void main() {
     seedPurchaseStatuses();
     await open(tester);
     expect(find.text('Total registrado: R\$ 79,42'), findsOneWidget);
+    expect(find.text('(4)'), findsOneWidget);
+    expect(find.text('(3)'), findsOneWidget);
 
     await tester.tap(find.text('A comprar'));
     await tester.pumpAndSettle();
@@ -143,6 +145,7 @@ void main() {
     expect(find.text('Feijão'), findsNothing);
     expect(find.text('Carne'), findsOneWidget);
     expect(find.text('Total registrado: R\$ 87,82'), findsOneWidget);
+    expect(find.text('(2)'), findsOneWidget);
 
     await tester.tap(find.text('Todos'));
     await tester.pumpAndSettle();
@@ -251,6 +254,55 @@ void main() {
     await save();
     expect(find.textContaining('acima do orçamento'), findsNothing);
     expect(find.byTooltip('Definir orçamento'), findsOneWidget);
+  });
+
+  Future<void> removeProduct(WidgetTester tester, String name) async {
+    await tester.tap(find.text(name));
+    await tester.pumpAndSettle();
+    final remove = find.byKey(const ValueKey('remove-item'));
+    await tester.ensureVisible(remove);
+    await tester.tap(remove);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('D-032 restaura subtotal e ordem ao desfazer a remoção', (
+    tester,
+  ) async {
+    seedPurchaseStatuses();
+    await open(tester);
+    await removeProduct(tester, 'Leite');
+    expect(find.text('Leite'), findsNothing);
+    expect(find.text('Total registrado: R\$ 58,32'), findsOneWidget);
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Total registrado: R\$ 79,42'), findsOneWidget);
+    expect(find.text('Produto restaurado.'), findsOneWidget);
+    expect(find.text('Desfazer'), findsNothing);
+    expect(
+      tester.getTopLeft(find.text('Leite')).dy,
+      lessThan(tester.getTopLeft(find.text('Carne')).dy),
+    );
+  });
+
+  testWidgets('D-032 oportunidade termina após cinco segundos ou ao voltar', (
+    tester,
+  ) async {
+    seedPurchaseStatuses();
+    await open(tester);
+    await removeProduct(tester, 'Arroz');
+    expect(find.text('Desfazer'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.text('Desfazer'), findsNothing);
+    expect(find.text('Arroz'), findsNothing);
+
+    await removeProduct(tester, 'Feijão');
+    expect(find.text('Desfazer'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Compra teste'));
+    await tester.pumpAndSettle();
+    expect(find.text('Desfazer'), findsNothing);
+    expect(find.text('Feijão'), findsNothing);
   });
 
   testWidgets(

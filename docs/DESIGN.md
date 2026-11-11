@@ -57,7 +57,7 @@ Minhas listas
 | Parcial | Planejado 5, comprado 3 com quantidade conhecida | Sim | Mostra `3 de 5` e subtotal parcial |
 | Concluído | Compra registrada e quantidade planejada atendida, ou item sem quantidade planejada que recebeu valor direto | Não | Mostra indicador discreto de concluído |
 | Quantidade não confirmada | Item planejado com entrada de valor direto, inclusive misturado a unidades conhecidas | Sim | D-030 aprovada em 10/11/2026: não inferir quantidade total nem conclusão |
-| Removido | Usuário retirou da lista ativa | Não | Não entra no total; possível `Desfazer` ainda sem duração decidida |
+| Removido | Usuário retirou da lista ativa | Não | Não entra no total; `Desfazer` por cinco segundos enquanto permanece na tela (D-032) |
 
 **Importante:** valor registrado, mesmo parcial, **já compõe o total**. Ícones e filtros nunca controlam somas financeiras.
 

@@ -365,6 +365,102 @@ void main() {
       throwsA(isA<PurchaseEntryNotFoundException>()),
     );
   });
+  test('D-032 restaura a mesma linha e os preços uma vez', () async {
+    await repository.createPurchaseEntry(
+      shoppingListId: 'list',
+      entry: entry(),
+    );
+    final removedAt = (await repository.removeItemForUndo(
+      id: 'soap',
+      shoppingListId: 'list',
+    ))!;
+    expect((await repository.loadShoppingList('list')).totalCents, 0);
+    expect(
+      await repository.restoreRemovedItem(
+        id: 'soap',
+        shoppingListId: 'list',
+        removedAt: removedAt.subtract(const Duration(microseconds: 1)),
+      ),
+      isNull,
+    );
+    final restored = await repository.restoreRemovedItem(
+      id: 'soap',
+      shoppingListId: 'list',
+      removedAt: removedAt,
+    );
+    expect(restored!.items.map((summary) => summary.item.id), [
+      'soap',
+      'milk',
+      'meat',
+    ]);
+    expect(restored.totalCents, 1050);
+    expect(
+      await repository.restoreRemovedItem(
+        id: 'soap',
+        shoppingListId: 'list',
+        removedAt: removedAt,
+      ),
+      isNull,
+    );
+    expect((await db.query('purchase_entries')).single['id'], 'e');
+  });
+
+  test('D-032 reverte o desfazer se o total ultrapassar o limite', () async {
+    await repository.createPurchaseEntry(
+      shoppingListId: 'list',
+      entry: entry(direct: maxMoneyCents),
+    );
+    final removedAt = (await repository.removeItemForUndo(
+      id: 'soap',
+      shoppingListId: 'list',
+    ))!;
+    await repository.createPurchaseEntry(
+      shoppingListId: 'list',
+      entry: entry(id: 'milk', item: 'milk', direct: 1),
+    );
+    await expectLater(
+      repository.restoreRemovedItem(
+        id: 'soap',
+        shoppingListId: 'list',
+        removedAt: removedAt,
+      ),
+      throwsRangeError,
+    );
+    final result = await repository.loadShoppingList('list');
+    expect(result.totalCents, 1);
+    expect(result.items.first.item.removedAt, removedAt);
+    expect((await db.query('purchase_entries')).length, 2);
+  });
+
+  test('D-032 repositório recusa restaurar após a lista finalizar', () async {
+    final removedAt = (await repository.removeItemForUndo(
+      id: 'soap',
+      shoppingListId: 'list',
+    ))!;
+    await db.update(
+      'shopping_lists',
+      {
+        'status': 'finalized',
+        'finalized_at_utc': DateTime.now()
+            .toUtc()
+            .add(const Duration(minutes: 1))
+            .toIso8601String(),
+        'finalized_registered_total_cents': 0,
+      },
+      where: 'id = ?',
+      whereArgs: ['list'],
+    );
+    await expectLater(
+      repository.restoreRemovedItem(
+        id: 'soap',
+        shoppingListId: 'list',
+        removedAt: removedAt,
+      ),
+      throwsA(isA<FinalizedShoppingListException>()),
+    );
+    expect((await repository.listItems('list')).first.removedAt, removedAt);
+  });
+
   test(
     'CT-024/050: remover item comprado retira subtotal sem apagar entradas',
     () async {

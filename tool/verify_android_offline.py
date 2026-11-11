@@ -1,4 +1,4 @@
-"""Verifica listas e, com --items, a Fase 2 offline no app normal, sem reset/uninstall."""
+"""Verifica listas, itens ou compras offline no APK normal, sem limpar dados."""
 
 import argparse
 import json
@@ -164,6 +164,10 @@ def main():
             raise RuntimeError("Não foi possível confirmar ausência de rede padrão.")
         report["offline_confirmed"] = True
         started = True
+        report["stage"] = "abrir o aplicativo em modo avião"
+        check.start()
+        check.home_with("Minhas listas")
+        report["stage"] = "criar a lista de teste"
         check.tap_label("Nova lista")
         check.edit(0, name)
         check.edit(1, "123,45")
@@ -171,6 +175,7 @@ def main():
         check.tap_label("Criar lista")
         check.home_with(name)
         if options.items:
+            report["stage"] = "cadastrar os produtos de teste"
             check.tap_label(name)
             check.home_with(name)
             for product, quantity in [("CarneTeste", None), ("LeiteTeste", "5"), ("RemovidoTeste", "2")]:
@@ -186,6 +191,7 @@ def main():
             check.wait_for(lambda nodes: not any(check.has_label(node, "RemovidoTeste") for node in nodes)
                            and not any(node.get("class") == "android.widget.EditText" for node in nodes))
         if options.purchases:
+            report["stage"] = "registrar as compras de teste"
             check.tap_label(name)
             check.home_with(name)
             for product, quantity, price in [("LeiteTeste", "3", "4,22"), ("CarneTeste", None, "47,82")]:
@@ -197,6 +203,7 @@ def main():
                 check.screenshot("purchase_keyboard.png")
                 check.tap_label("Salvar produto")
                 check.home_with(product)
+        report["stage"] = "reiniciar o processo e conferir os dados"
         original_pid = check.adb("shell", "pidof", PACKAGE)
         if not original_pid:
             raise RuntimeError("Processo inicial não identificado.")
@@ -230,6 +237,7 @@ def main():
             report["purchases_persisted"] = True
         report.update(persisted_after_restart=True, original_pid=original_pid, new_pid=new_pid)
         check.screenshot("after_restart_offline.png")
+        report["stage"] = "concluído"
     except Exception as error:
         report["error"] = str(error)
     finally:

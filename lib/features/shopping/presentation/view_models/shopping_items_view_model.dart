@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/money/money.dart';
@@ -45,6 +47,8 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   String? _saveError;
   String? _nameError;
   String? _quantityError;
+  ({String id, DateTime removedAt})? _removalToUndo;
+  Timer? _undoTimer;
 
   List<ShoppingItem> get items => _items;
   List<ShoppingItem> get visibleItems =>
@@ -57,6 +61,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   bool get readOnly => _readOnly;
   bool get canEdit =>
       !_disposed && _hasLoaded && _loadError == null && !isBusy && !_readOnly;
+  bool get hasRemovalToUndo => _removalToUndo != null && !_readOnly;
   ShoppingItem? get editingItem => _editingItem;
   String get draftName => _draftName;
   String get draftQuantity => _draftQuantity;
@@ -329,18 +334,22 @@ class ShoppingItemsViewModel extends ChangeNotifier {
     _saveError = null;
     _notify();
     try {
-      final removed = await _repository.removeItem(
+      final removedAt = await _repository.removeItemForUndo(
         id: editing.id,
         shoppingListId: shoppingList.id,
       );
       if (_disposed) return false;
-      // O contrato confirma remoção/ausência, mas não retorna o instante gravado.
-      // Retire só este ID do cache; não invente uma data local de persistência.
       _updateConfirmedItems(_items.where((item) => item.id != editing.id));
-      if (!removed) {
+      if (removedAt == null) {
         _saveError = 'Este produto já não está disponível. Cancele e atualize os produtos.';
         return false;
       }
+      _clearUndo();
+      _removalToUndo = (id: editing.id, removedAt: removedAt);
+      _undoTimer = Timer(const Duration(seconds: 5), () {
+        _clearUndo();
+        _notify();
+      });
       _resetDraft();
       return true;
     } on FinalizedShoppingListException {
@@ -360,6 +369,47 @@ class ShoppingItemsViewModel extends ChangeNotifier {
       _removing = false;
       _notify();
     }
+  }
+
+  Future<String> undoRemoval() async {
+    final removal = _removalToUndo;
+    if (removal == null || !canEdit) {
+      return 'Não foi possível desfazer a remoção.';
+    }
+    _saving = true;
+    _notify();
+    try {
+      final restored = await _repository.restoreRemovedItem(
+        id: removal.id,
+        shoppingListId: shoppingList.id,
+        removedAt: removal.removedAt,
+      );
+      _clearUndo();
+      if (restored == null) return 'Esta remoção já não pode ser desfeita.';
+      if (!_disposed) _acceptCalculation(restored);
+      return 'Produto restaurado.';
+    } on FinalizedShoppingListException {
+      _readOnly = true;
+      _clearUndo();
+      return 'Esta lista foi finalizada e só pode ser consultada.';
+    } on ShoppingListNotFoundException {
+      _readOnly = true;
+      _clearUndo();
+      return 'Esta lista não está mais disponível.';
+    } on RangeError {
+      return 'Restaurar o produto ultrapassaria o limite do total.';
+    } catch (_) {
+      return 'Não foi possível restaurar o produto.';
+    } finally {
+      _saving = false;
+      _notify();
+    }
+  }
+
+  void _clearUndo() {
+    _undoTimer?.cancel();
+    _undoTimer = null;
+    _removalToUndo = null;
   }
 
   bool beginPurchase(ShoppingItem item, {PurchaseEntry? entry}) {
@@ -572,6 +622,7 @@ class ShoppingItemsViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _clearUndo();
     super.dispose();
   }
 }

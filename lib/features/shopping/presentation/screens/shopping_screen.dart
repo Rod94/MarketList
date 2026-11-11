@@ -54,32 +54,47 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
           child: const ItemFormSheet(),
         ),
       );
-      if (saved != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              saved == ItemFormResult.removed
-                  ? 'Produto removido.'
-                  : 'Produto salvo.',
-            ),
-          ),
-        );
+      if (saved == ItemFormResult.saved && context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Produto salvo.')));
       }
     } finally {
       model.clearDraft();
     }
   }
 
+  Future<void> _undoRemoval() async {
+    final message = await context.read<ShoppingItemsViewModel>().undoRemoval();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _filterLabel(String text, int count, {required bool showCount}) {
+    if (!showCount) return Text(text);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(text),
+        const SizedBox(width: AppSpacing.small),
+        Text('($count)'),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final model = context.watch<ShoppingItemsViewModel>();
-    final visibleItems = [
+    final allItems = [
       for (final summary
           in model.calculation?.items ?? const <ItemPurchaseSummary>[])
-        if (summary.status != ItemPurchaseStatus.removed &&
-            (!_onlyToBuy || summary.status != ItemPurchaseStatus.purchased))
-          summary,
+        if (summary.status != ItemPurchaseStatus.removed) summary,
     ];
+    final itemsToBuy = allItems
+        .where((summary) => summary.status != ItemPurchaseStatus.purchased)
+        .toList();
+    final visibleItems = _onlyToBuy ? itemsToBuy : allItems;
     final compactAmounts =
         MediaQuery.sizeOf(context).width < 360 ||
         MediaQuery.textScalerOf(context).scale(14) > 20;
@@ -144,12 +159,20 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                     spacing: AppSpacing.small,
                     children: [
                       ChoiceChip(
-                        label: const Text('Todos'),
+                        label: _filterLabel(
+                          'Todos',
+                          allItems.length,
+                          showCount: !compactAmounts,
+                        ),
                         selected: !_onlyToBuy,
                         onSelected: (_) => setState(() => _onlyToBuy = false),
                       ),
                       ChoiceChip(
-                        label: const Text('A comprar'),
+                        label: _filterLabel(
+                          'A comprar',
+                          itemsToBuy.length,
+                          showCount: !compactAmounts,
+                        ),
                         selected: _onlyToBuy,
                         onSelected: (_) => setState(() => _onlyToBuy = true),
                       ),
@@ -245,6 +268,22 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (model.hasRemovalToUndo)
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: AppSpacing.small,
+                      children: [
+                        Semantics(
+                          liveRegion: true,
+                          child: const Text('Produto removido.'),
+                        ),
+                        TextButton(
+                          onPressed: model.canEdit ? _undoRemoval : null,
+                          child: const Text('Desfazer'),
+                        ),
+                      ],
+                    ),
                   if (model.totalCents case final total?)
                     Semantics(
                       liveRegion: true,

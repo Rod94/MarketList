@@ -499,3 +499,18 @@ purchase_entry_sheet_test.dart acrescenta **8 testes de widget**: dois preços�
 `dart format .`: 52 arquivos; `flutter analyze`: sem problemas. `flutter test --reporter expanded`: **289 aprovados/0 falhas**, saída 0, build/f3-06-regression.log. `flutter test integration_test/app_smoke_test.dart --no-uninstall -d RXCY300NZZH --verbose`: **10 aprovados**, saída 0, build/f3-06-android-ui.log. Novos 2 nativos registram/corrigem/excluem múltiplos preços e comprovam erro SQL com campos/total preservados. Banco/contrato não mudaram. Corpo exibe total confirmado no cabeçalho; barra inferior e filtros continuam para F4. Resultado do APK no relatório da fase.
 
 F3-06 build debug aprovado em 11,2 s; normal instalado/aberto (Success/Status: ok/COLD), cópia marketlist-f3-06-debug.apk. Sem uninstall ou novo esquema.
+
+## 29. Fase 4 — tela de compra e Desfazer
+
+Os widgets cobrem os quatro estados de compra, a ordem e o total ao alternar filtros (UX-011 a UX-016), o rodapé durante a rolagem de 100 produtos (UX-017), teclado e fonte ampliada (UX-005/018) e o anúncio agrupado de nome, estado, quantidade e subtotal (UX-019). O orçamento opcional passa pelos casos CT-028 a CT-031, inclusive zero explícito, erro de gravação e edição em lista ativa.
+
+Para D-032, os testes de widget verificam restauração do subtotal e da posição, expiração após cinco segundos e cancelamento ao voltar da lista. Os testes SQLite conferem que a restauração depende do instante de remoção correspondente, recusa lista finalizada e reverte a operação quando o total restaurado ultrapassaria o limite monetário. O esquema do banco de compras continua na versão 3.
+
+- `dart format` nos oito arquivos Dart alterados da F4-06 deixou todos no padrão do formatador.
+- `flutter analyze` terminou sem problemas.
+- `flutter test --reporter expanded` passou **311 testes**.
+- `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **26 testes** no Samsung. A suíte incluiu filtro, orçamento, Desfazer, migrações e preferência AMOLED restaurada com fundo `#000000`.
+- `flutter build apk --debug` gerou o APK normal, preservado em `build/app/outputs/flutter-apk/marketlist-f4-debug.apk`. `adb install -r` retornou `Success` e a abertura retornou `Status: ok`.
+- `python tool/verify_android_offline.py --adb <caminho-adb> --serial RXCY300NZZH --run --purchases` passou no APK normal. Com modo avião ativo e sem rede padrão, o ensaio registrou três unidades de R$ 4,22 e uma compra de R$ 47,82 por valor direto. Após trocar o processo, a tela recuperou as duas compras, o total de R$ 60,48 e mostrou R$ 62,97 disponíveis. A captura com teclado real mostra o botão Salvar produto acima do teclado. O roteiro removeu a lista criada para o ensaio e confirmou a restauração da rede e da configuração de tela. Evidências em `build/offline_verification_f3/`.
+
+A leitura em voz alta com TalkBack segue pendente de inspeção manual. Os testes de semântica verificam os dados disponibilizados ao leitor de tela.

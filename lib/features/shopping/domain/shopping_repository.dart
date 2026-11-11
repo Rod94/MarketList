@@ -53,6 +53,19 @@ abstract interface class ShoppingRepository {
   /// Marca remoção lógica; false se item ausente/removido. Recusa finalizada.
   Future<bool> removeItem({required String id, required String shoppingListId});
 
+  /// Retorna o instante persistido da remoção para identificar o desfazer.
+  Future<DateTime?> removeItemForUndo({
+    required String id,
+    required String shoppingListId,
+  });
+
+  /// Restaura apenas a remoção identificada; null se ela já não corresponde.
+  Future<ShoppingCalculation?> restoreRemovedItem({
+    required String id,
+    required String shoppingListId,
+    required DateTime removedAt,
+  });
+
   String newEntryId();
   Future<ShoppingCalculation> loadShoppingList(String shoppingListId);
   Future<ShoppingCalculation> createPurchaseEntry({
