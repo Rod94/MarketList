@@ -602,3 +602,11 @@ O RED em `flutter test test/widget/shopping_screen_test.dart --plain-name F7-03 
 - `flutter test --reporter expanded` passou **356 testes**.
 - `flutter test integration_test --no-uninstall --concurrency=1 -d RXCY300NZZH --reporter expanded` passou **31 testes** no Samsung com a configuração normal de fonte e rede.
 - `flutter build apk --debug` gerou `build/app/outputs/flutter-apk/marketlist-f7-debug.apk`. A instalação retornou `Success` e a abertura a frio retornou `Status: ok`.
+
+## 40. F7-06 — APK de distribuição de teste
+
+- `flutter build apk --release` concluiu e gerou `build/app/outputs/flutter-apk/marketlist-f7-release.apk` com **51.812.330 bytes**.
+- `aapt dump badging` confirmou pacote `br.com.rodolpho.marketlist`, versão `0.1.0`, código `1`, SDK mínimo `24`, alvo `36` e ABIs `arm64-v8a`, `armeabi-v7a` e `x86_64`.
+- `apksigner verify --verbose --print-certs` aprovou a assinatura v2, certificado `CN=Android Debug`, conforme a configuração de distribuição de teste do Gradle.
+- SHA-256 do APK `2dd5c706e06e2fb07c176ea3829c33b3e4da924094fae701a32dea1798f7370b`.
+- `adb install -r` retornou `Success` e `adb shell am start -W -n br.com.rodolpho.marketlist/.MainActivity` retornou `Status: ok` em abertura a frio. A inspeção por ADB confirmou a navegação de Minhas listas ao Histórico, à busca e de volta à tela inicial.
