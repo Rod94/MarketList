@@ -34,6 +34,15 @@ final class ShoppingCalculation {
   const ShoppingCalculation._(this.items, this.totalCents);
   final List<ItemPurchaseSummary> items;
   final int totalCents;
+
+  Iterable<ItemPurchaseSummary> get itemsNeedingAttention => items.where(
+    (summary) => switch (summary.status) {
+      ItemPurchaseStatus.pending ||
+      ItemPurchaseStatus.partial ||
+      ItemPurchaseStatus.quantityUnconfirmed => true,
+      ItemPurchaseStatus.purchased || ItemPurchaseStatus.removed => false,
+    },
+  );
 }
 
 ShoppingCalculation calculateShoppingList({

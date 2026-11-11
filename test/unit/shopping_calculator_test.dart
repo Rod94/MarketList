@@ -71,6 +71,48 @@ void main() {
   test('vazio é zero e não exige orçamento', () {
     expect(calc([], []).totalCents, 0);
   });
+
+  test('FIN-002/003/013 reúne avisos na ordem de cadastro', () {
+    final result = calc(
+      [
+        item(id: 'sabao', order: 4),
+        item(id: 'cafe', order: 2),
+        item(id: 'arroz', order: 3, removed: true),
+        item(id: 'azeite', order: 1, planned: null),
+        item(id: 'brinde', order: 5, planned: null),
+      ],
+      [
+        units(itemId: 'sabao'),
+        units(id: 'cafe-unidades', itemId: 'cafe', quantity: 5),
+        direct(id: 'cafe-direto', itemId: 'cafe', amount: 500),
+        units(id: 'arroz-unidades', itemId: 'arroz'),
+        direct(id: 'gratuito', itemId: 'brinde', amount: 0),
+      ],
+    );
+    final attention = result.itemsNeedingAttention.toList();
+    expect(attention.map((summary) => summary.item.id), [
+      'azeite',
+      'cafe',
+      'sabao',
+    ]);
+    expect(attention.map((summary) => summary.status), [
+      ItemPurchaseStatus.pending,
+      ItemPurchaseStatus.quantityUnconfirmed,
+      ItemPurchaseStatus.partial,
+    ]);
+    expect(attention.map((summary) => summary.missingQuantity), [
+      null,
+      null,
+      2,
+    ]);
+    expect(attention[1].knownPurchasedQuantity, 5);
+    expect(result.totalCents, 3300);
+  });
+
+  test('conferência pode ter a lista de avisos vazia', () {
+    expect(calc([], []).itemsNeedingAttention, isEmpty);
+    expect(calc([item()], [units(quantity: 5)]).itemsNeedingAttention, isEmpty);
+  });
   test('pendente planejado preserva faltantes sem preço fictício', () {
     final summary = calc([item()], []).items.single;
     expect(summary.status, ItemPurchaseStatus.pending);
